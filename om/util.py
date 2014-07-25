@@ -35,7 +35,7 @@ def get_chip_peak_gene_expression(gene_name, factor, condition):
 
 
 
-def get_regulation_data(cobra_rxn_id, expanded_dataset=False):
+def get_regulation_data(cobra_rxn_id, verbose=True, as_dataframe=True):
     """This function takes a cobra_rxn_id and returns a json regulation structure, by default it works for chip peak gene expression
        and the numeric value always corresponds to positive(activation) and negative(repression)
     {'cobra_rxn_id': [{'value':1., 'type':'transcriptional', 'regulator':'component_1', 'gene':'gene_id_1', 'dataset':dataset_id_1},
@@ -62,13 +62,15 @@ def get_regulation_data(cobra_rxn_id, expanded_dataset=False):
                                           cpge.electron_acceptor).all()
 
 
-    if not expanded_dataset:
-        return [{'value':x.expression_value, 'type':'transcriptional', 'regulator':x.target, 'gene':x.gene_name,
-                 'dataset':x.diff_exp_id} for x in gpr_regulation]
-    else:
-        return [{'value':x.expression_value, 'type':'transcriptional', 'regulator':x.target, 'gene':x.gene_name,
+    if verbose:
+        data = [{'value':x.expression_value, 'type':'transcriptional', 'regulator':x.target, 'gene':x.gene_name,
                  'dataset':x.diff_exp_id, 'carbon_source':x.carbon_source, 'nitrogen_source':x.nitrogen_source,
                  'electron_acceptor':x.electron_acceptor} for x in gpr_regulation]
+    else:
+        data = [{'value':x.expression_value, 'type':'transcriptional', 'regulator':x.target, 'gene':x.gene_name,
+                 'dataset':x.diff_exp_id} for x in gpr_regulation]
+
+    if as_dataframe: return pd.DataFrame(data, columms=['dataset','regulator','carbon_source','nitrogen_source','electron_acceptor','gene','type','value'])
 
 
 

@@ -148,9 +148,8 @@ def get_gene_with_metacyc(session, base, components, gene_entry):
     gene = session.query(components.Gene).filter(or_(components.Gene.locus_id == vals['ACCESSION-1'][0],\
                                                      components.Gene.name == vals['COMMON-NAME'][0])).first()
     if gene is None:
-        print vals['ACCESSION-1'][0]
         print 'Exception, MetaCyc gene:'+vals['ACCESSION-1'][0]+' not found in genbank'
-        return None
+
     return gene
 
 
@@ -298,7 +297,7 @@ def get_or_create_metacyc_transcription_unit(session, base, components, tu_entry
 @timing
 def load_genbank(genbank_file, base, components):
     """
-        Original code by halatif and jtan, modified here to load into om db
+        Original code by halatif and jtan, modified here to load into ome db
     """
 
     from Bio import SeqIO
@@ -306,45 +305,62 @@ def load_genbank(genbank_file, base, components):
     session = base.Session()
     gb_file = SeqIO.read(settings.data_directory+'/annotation/GenBank/'+genbank_file,'gb')
 
+    ome_genome = {'genbank_id' : gb_file.annotations['gi'],
+                  'ncbi_id'    : gb_file.id,
+                  'organism'   : gb_file.annotations['organism']}
+
+    genome = base.Genome(**ome_genome)
+    session.add(genome)
+    session.flush()
+
+
     for feature in gb_file.features:
-        om_gene = {'long_name':''}
-        om_protein = {'long_name':''}
+        ome_gene = {'long_name':''}
+        ome_protein = {'long_name':''}
+
 
         if feature.type == 'CDS' or feature.type == 'tRNA' or \
            feature.type == 'ncRNA' or feature.type == 'rRNA':
 
-            om_gene['name'] = feature.qualifiers['gene'][0]
-            om_gene['leftpos'] = feature.location.start
-            om_gene['rightpos'] = feature.location.end
+            ome_gene['name'] = feature.qualifiers['gene'][0]
+            ome_gene['leftpos'] = feature.location.start
+            ome_gene['rightpos'] = feature.location.end
+            ome_gene['genome_id'] = genome.id
 
-            if feature.strand == 1: om_gene['strand'] = '+'
-            elif feature.strand == -1: om_gene['strand'] = '-'
-
-
-            om_gene['locus_id'] = feature.qualifiers['locus_tag'][0]
+            if feature.strand == 1: ome_gene['strand'] = '+'
+            elif feature.strand == -1: ome_gene['strand'] = '-'
 
 
-            try: om_gene['info'] = feature.qualifiers['product'][0]  #if pseudogene
-            except: om_gene['info'] = feature.qualifiers['note'][0]  #use note field for info
+            ome_gene['locus_id'] = feature.qualifiers['locus_tag'][0]
+
+
+            try: ome_gene['info'] = feature.qualifiers['product'][0]  #if pseudogene
+            except: ome_gene['info'] = feature.qualifiers['note'][0]  #use note field for info
 
             if 'function' in feature.qualifiers:
-                om_gene['info'] = om_gene['info'] + ',' + feature.qualifiers['function'][0]
-                om_protein['long_name'] = feature.qualifiers['function'][0]
+                ome_gene['info'] = ome_gene['info'] + ',' + feature.qualifiers['function'][0]
+                ome_protein['long_name'] = feature.qualifiers['function'][0]
 
-            gene = components.Gene(**om_gene)
+            gene = components.Gene(**ome_gene)
             session.add(gene)
             session.flush()
 
             if 'product' in feature.qualifiers and feature.type == 'CDS':
 
-                om_protein['name'] = feature.qualifiers['protein_id'][0]
-                om_protein['gene_id'] = gene.id
+                ome_protein['name'] = feature.qualifiers['protein_id'][0]
+                ome_protein['gene_id'] = gene.id
 
-                session.add(components.Protein(**om_protein))
+                session.add(components.Protein(**ome_protein))
 
     session.commit()
     session.close()
 
+
+@timing
+def load_genomes(base, components):
+    for genbank_file in os.listdir(settings.data_directory+'/annotation/GenBank'):
+        if genbank_file[-2:] != 'gb': continue
+        load_genbank(genbank_file, base, components)
 
 
 @timing
@@ -600,6 +616,27 @@ def load_genome(genome_filepath=None):
         outfile.write(r"\copy genome from '%s'" % (genome_filepath))
     os.system("%s < tmp_command.sql > psql.log 2>&1" % (settings.psql_full))
     os.remove("tmp_command.sql")
+
+
+@timing
+def write_gff(base, components, genome):
+    session = base.Session()
+
+    genbank_fasta_string = 'gi|'+genome.genbank_id+'|ref|'+genome.ncbi_id+'|'
+
+    with open(settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff', 'wb') as gff_file:
+
+        for gene in session.query(components.Gene).all():
+
+            info_string = 'gene_id "%s"; transcript_id "%s"; gene_name "%s";' % (gene.locus_id, gene.locus_id, gene.name)
+
+            gff_string = '%s\t%s\t%s\t%d\t%d\t.\t%s\t.\t%s\n' % (genbank_fasta_string, 'ome_db', 'exon', gene.leftpos,
+                                                                                                         gene.rightpos,
+                                                                                                         gene.strand,
+                                                                                                         info_string)
+            gff_file.write(gff_string)
+
+    session.close()
 
 
 

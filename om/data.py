@@ -165,7 +165,7 @@ class DataSet(Base):
     __mapper_args__ = {'polymorphic_identity': 'data_set',
                        'polymorphic_on': type}
 
-    __table_args__ = (UniqueConstraint('id','replicate'),{})
+    __table_args__ = (UniqueConstraint('name','replicate'),{})
 
     def __repr__(self):
         return "Data Set (#%d):  %s" % \
@@ -208,17 +208,16 @@ class ArrayExperiment(DataSet):
 
     id = Column(Integer, ForeignKey('data_set.id', ondelete='CASCADE'), primary_key=True)
     platform = Column(String(10))
+    group_name = Column(String(200))
 
-    #terrrible hack right here
-    file_name = Column(String(100))
 
     __mapper_args__ = { 'polymorphic_identity': 'array_experiment' }
 
     def __init__(self, name, replicate, strain_id, environment_id, data_source_id,\
-                       platform, file_name):
+                       platform, group_name):
         super(ArrayExperiment, self).__init__(name, replicate, strain_id, environment_id, data_source_id)
         self.platform = platform
-        self.file_name = file_name
+        self.file_name = group_name
 
     def __repr__(self):
         return "Array Experiment (#%d, %s):  %s  %d" % \
@@ -234,19 +233,18 @@ class ArrayExperiment(DataSet):
 
 
 class RNASeqExperiment(DataSet):
-    __tablename__ = 'rna_seq_experiment'
+    __tablename__ = 'rnaseq_experiment'
 
     id = Column(Integer, ForeignKey('data_set.id', ondelete='CASCADE'), primary_key=True)
 
     sequencing_type = Column(String(20))
     machine_id = Column(String(20))
     normalization_method = Column(String(100))
-    normalization_factor = Column(Float, primary_key=True)
+    normalization_factor = Column(Float)
+    group_name = Column(String(200))
 
-    #terrrible hack right here
-    file_name = Column(String(100))
 
-    __mapper_args__ = { 'polymorphic_identity': 'rna_seq_experiment' }
+    __mapper_args__ = { 'polymorphic_identity': 'rnaseq_experiment' }
 
     def __repr__(self):
         return "RNASeqExperiment (#%d, %s):  %s" % \
@@ -262,31 +260,29 @@ class RNASeqExperiment(DataSet):
         return data_set
 
     def __init__(self, name, replicate, strain_id, environment_id, data_source_id,\
-                       sequencing_type, machine_id, file_name, normalization_method,\
-                       normalization_factor):
+                       sequencing_type, machine_id, group_name, normalization_method=None,\
+                       normalization_factor=None):
         super(RNASeqExperiment, self).__init__(name, replicate, strain_id, environment_id, data_source_id)
         self.sequencing_type = sequencing_type
         self.machine_id = machine_id
         self.normalization_method = normalization_method
         self.normalization_factor = normalization_factor
-        self.file_name = file_name
+        self.group_name = group_name
 
 
 class ChIPExperiment(DataSet):
-    __tablename__ = 'chip_experiment'
+    __tablename__ = 'ChIP_experiment'
 
     id = Column(Integer, ForeignKey('data_set.id'), primary_key=True)
     antibody = Column(String(20))
     protocol_type = Column(String(20))
     target = Column(String(20))
     normalization_method = Column(String(100))
-    normalization_factor = Column(Float, primary_key=True)
+    normalization_factor = Column(Float)
+    group_name = Column(String(200))
 
-    #terrrible hacks right here
-    file_name = Column(String(100))
-    directory_path = Column(String(200))
 
-    __mapper_args__ = { 'polymorphic_identity': 'chip_experiment' }
+    __mapper_args__ = { 'polymorphic_identity': 'ChIP_experiment' }
 
     def __repr__(self):
         return "ChIPExperiment (#%d, %s): %s %s %s" % \
@@ -303,8 +299,8 @@ class ChIPExperiment(DataSet):
         return dataset
 
     def __init__(self, name, replicate, strain_id, environment_id, data_source_id,\
-                       antibody, protocol_type, target, normalization_method,\
-                       normalization_factor, file_name, directory_path):
+                       antibody, protocol_type, target, group_name, normalization_method=None,\
+                       normalization_factor=None):
 
         super(ChIPExperiment, self).__init__(name, replicate, strain_id, environment_id, data_source_id)
         self.antibody = antibody
@@ -312,8 +308,7 @@ class ChIPExperiment(DataSet):
         self.target = target
         self.normalization_method = normalization_method
         self.normalization_factor = normalization_factor
-        self.file_name = file_name
-        self.directory_path = directory_path
+        self.group_name = group_name
 
 
 class AnalysisComposition(Base):
@@ -398,8 +393,8 @@ class DifferentialExpression(Analysis):
     __mapper_args__ = {'polymorphic_identity': 'differential_expression'}
 
 
-    def __init__(self, name, norm_method, fdr):
-        super(DifferentialExpression, self).__init__(name)
+    def __init__(self, name, replicate, norm_method, fdr):
+        super(DifferentialExpression, self).__init__(name, replicate)
         self.norm_method = norm_method
         self.fdr = fdr
 
@@ -541,7 +536,7 @@ diff_exp_chip_peak = ome.query(DifferentialExpression.id.label('diff_exp_id'),
                                     join(chip_peak, and_(chip_peak.c.chip_peak_environment_id == NormalizedExpression.environment_id,
                                                                   func.substr(chip_peak.c.chip_peak_antibody, 6,
                                                                   func.length(chip_peak.c.chip_peak_antibody)) == 'crp',
-                                                             and_(Strain2.name == 'wt', Strain.name == 'delta-crp'))).\
+                                                             and_(Strain2.name == 'wt', Strain.name != 'delta-crp'))).\
                                     filter(chip_peak.c.chip_peak_strain_id == Strain2.id).subquery()
 
 

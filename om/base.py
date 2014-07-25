@@ -22,17 +22,35 @@ connection = pymongo.Connection()
 omics_database = connection.omics_database
 
 
+class Genome(Base):
+    __tablename__ = 'genome'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    genbank_id = Column(String(200))
+    ncbi_id = Column(String(100))
+    organism = Column(String(200))
+
+
+    __table_args__ = (UniqueConstraint('genbank_id'),{})
+
+    def __init__(self, genbank_id, ncbi_id, organism):
+        self.genbank_id = genbank_id
+        self.ncbi_id = ncbi_id
+        self.organism = organism
+
+
 class GenomeRegion(Base):
     __tablename__ = 'genome_region'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    genome_id = Column(Integer, ForeignKey('genome.id'))
     name = Column(String(10))
     leftpos = Column(Integer, nullable=False)
     rightpos = Column(Integer, nullable=False)
     strand = Column(String(1), nullable=False)
     type = Column(String(20))
 
-    __table_args__ = (UniqueConstraint('leftpos','rightpos','strand'),{})
+    __table_args__ = (UniqueConstraint('leftpos','rightpos','strand','genome_id'),{})
 
     __mapper_args__ = {'polymorphic_identity': 'genome_region',
                        'polymorphic_on': type
@@ -45,10 +63,11 @@ class GenomeRegion(Base):
     def __repr__dict__(self):
         return {"name":self.name,"id":self.id,"leftpos":self.leftpos,"rightpos":self.rightpos,"strand":self.strand}
 
-    def __init__(self, leftpos, rightpos, strand, name=None):
+    def __init__(self, leftpos, rightpos, strand, genome_id, name=None):
         self.leftpos = leftpos
         self.rightpos = rightpos
         self.strand = strand
+        self.genome_id = genome_id
         self.name = name
 
 
@@ -212,18 +231,17 @@ def get_or_create(session, class_type, **kwargs):
         if constraint.__class__.__name__ == 'UniqueConstraint':
             unique_cols = constraint.columns.keys()
 
-	inherited_result = True
-	if '__mapper_args__' in class_type.__dict__ and 'inherits' in class_type.__mapper_args__:
-		inherited_class_type = class_type.__mapper_args__['inherits']
-		for constraint in list(inherited_class_type.__table_args__):
-			if constraint.__class__.__name__ == 'UniqueConstraint':
-				inherited_unique_cols = constraint.columns.keys()
+    inherited_result = True
+    if '__mapper_args__' in class_type.__dict__ and 'inherits' in class_type.__mapper_args__:
+        inherited_class_type = class_type.__mapper_args__['inherits']
+        for constraint in list(inherited_class_type.__table_args__):
+            if constraint.__class__.__name__ == 'UniqueConstraint':
+                inherited_unique_cols = constraint.columns.keys()
 
-		try: inherited_result = session.query(inherited_class_type).filter_by(**{k: kwargs[k] for k in inherited_unique_cols}).first()
-		except: None
+        try: inherited_result = session.query(inherited_class_type).filter_by(**{k: kwargs[k] for k in inherited_unique_cols}).first()
+        except: None
 
-    try: result = session.query(class_type).filter_by(**kwargs).first()
-    except: result = session.query(class_type).filter_by(**{k: kwargs[k] for k in unique_cols}).first()
+    result = session.query(class_type).filter_by(**{k: kwargs[k] for k in unique_cols}).first()
 
     if not result or not inherited_result:
         result = class_type(**kwargs)
