@@ -251,7 +251,7 @@ def get_or_create_metacyc_protein_complex(session, base, components, protein_com
     return protein_complex
 
 
-def get_or_create_metacyc_transcription_unit(session, base, components, tu_entry):
+def get_or_create_metacyc_transcription_unit(session, base, components, genome, tu_entry):
     vals = scrub_metacyc_entry(tu_entry,extra_args=['COMPONENTS'])
     if vals is None: return None
 
@@ -284,9 +284,9 @@ def get_or_create_metacyc_transcription_unit(session, base, components, tu_entry
         tss = rightpos
 
     if strand == '+':
-        tu = session.get_or_create(components.TU, name=name, leftpos=tss, rightpos=rightpos, strand=strand)
+        tu = session.get_or_create(components.TU, name=name, leftpos=tss, rightpos=rightpos, strand=strand, genome_id=genome.id)
     else:
-        tu = session.get_or_create(components.TU, name=name, leftpos=leftpos, rightpos=tss, strand=strand)
+        tu = session.get_or_create(components.TU, name=name, leftpos=leftpos, rightpos=tss, strand=strand, genome_id=genome.id)
 
     for gene in genes:
         session.get_or_create(components.TUGenes, tu_id=tu.id, gene_id=gene.id)
@@ -369,7 +369,7 @@ def load_motifs(base, components):
 
 
 @timing
-def load_metacyc_proteins(base, components):
+def load_metacyc_proteins(base, components, genome):
     session = base.Session()
     ##First load annotation file containing merger of metacyc and NCBI
     metacyc_ID = session.get_or_create(base.DataSource, name="metacyc").id
@@ -401,7 +401,7 @@ def load_metacyc_proteins(base, components):
 
 
 @timing
-def load_metacyc_transcription_units(base, components):
+def load_metacyc_transcription_units(base, components, genome):
     session = base.Session()
     ##First load annotation file containing merger of metacyc and NCBI
     metacyc_ID = session.get_or_create(base.DataSource, name="metacyc").id
@@ -414,44 +414,13 @@ def load_metacyc_transcription_units(base, components):
         if vals is None: continue
 
         if 'Transcription-Units' in vals['TYPES']:
-            get_or_create_metacyc_transcription_unit(session, base, components, entry)
+            get_or_create_metacyc_transcription_unit(session, base, components, genome, entry)
 
-
-
-
-        """
-        start_strand_bnum = get_start_strand_bnum(ome, components)
-        if start_strand_bnum == '': continue
-
-        result = ome.execute("INSERT INTO TU(name, strand) VALUES ('%s', '%s') RETURNING id;"%(name, start_strand_bnum[1]))
-        tu_id = result.fetchone()[0]
-        ome.execute("INSERT INTO id2otherID(id, otherID, type, dataset_id) VALUES " + \
-                    "(%i, '%s', '%s', %i);"%(tu_id, ID, 'TU', metacyc_ID))
-
-        has_tss_flag = 0
-        genes = []
-        for c in components:
-            id_and_type = find_id_and_type(ome, c)
-
-            if id_and_type == '': continue
-            if id_and_type[1] == 'binding_site': continue
-            if id_and_type[1] == 'gene': genes.append(id_and_type[0])
-            if id_and_type[1] == 'tss': has_tss_flag = 1
-
-            ome.execute("INSERT INTO TU_components(tu_id, other_id, type) VALUES (%i, %i, '%s');"%(tu_id, id_and_type[0], id_and_type[1]))
-
-        if not has_tss_flag:
-            result = ome.execute("INSERT INTO tss(name, position) VALUES ('%s', %i) RETURNING id;"%('start_'+start_strand_bnum[2], start_strand_bnum[0]))
-            tss_id = result.fetchone()[0]
-            ome.execute("INSERT INTO id2otherid(id, otherID, type, dataset_id) VALUES " + \
-                        "(%i, '%s', '%s', %i);"%(tss_id, start_strand_bnum[2], 'gene_start_as_tss', metacyc_ID))
-            ome.execute("INSERT INTO TU_components(tu_id, other_id, type) VALUES (%i, %i, '%s');"%(tu_id, tss_id, 'tss'))
-        make_citations(ome, transunits[t], tu_id)
-        """
+    session.close()
 
 
 @timing
-def load_metacyc_bindsites(base, components):
+def load_metacyc_bindsites(base, components, genome):
     session = base.Session()
     ##First load annotation file containing merger of metacyc and NCBI
     metacyc_ID = session.get_or_create(base.DataSource, name="metacyc").id
@@ -479,7 +448,7 @@ def load_metacyc_bindsites(base, components):
                 rightpos = centerpos
 
             session.get_or_create(components.DnaBindingSite, name=vals['UNIQUE-ID'][0], leftpos=leftpos,\
-                                  rightpos=rightpos, strand='+', centerpos=centerpos, width=length)
+                                  rightpos=rightpos, strand='+', genome_id=genome.id, centerpos=centerpos, width=length)
 
 
     for unique_id,entry in metacyc_regulation.iteritems():

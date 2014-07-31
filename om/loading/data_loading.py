@@ -37,7 +37,7 @@ def count_coverage(samfile, flip=False, include_insert=False):
         minus_strands.append(zeros((chromosome_sizes[reference],)))
     # iterate through each mapped read
     for i, read in enumerate(samfile):
-        #if i > 1e4: break
+        #if i > 1e3: break
         if read.is_unmapped:
             continue
         # for paired and data get entire insert only from read 1
@@ -98,7 +98,7 @@ def count_coverage_5prime(samfile, flip=False):
         minus_strands.append(zeros((chromosome_sizes[reference],)))
     # iterate through each mapped read
     for i, read in enumerate(samfile):
-        #if i > 1e6: break
+        #if i > 1e5: break
         if read.is_unmapped:
             continue
         if read.is_reverse:
@@ -249,11 +249,10 @@ def calculate_normalization_factors(experiment_type, group_name):
     for file_name in os.listdir(directory_path):
         if file_name[-3:] != 'bam': continue
         prefix = file_name.split('.')[0]
-        if prefix[0:4] == 'chip': prefix = 'ChIP'+prefix[4:] #scrub misnamed files
 
+        mapped_reads[prefix] = int(subprocess.check_output(['samtools', 'flagstat', directory_path+'/'+file_name]).split('\n')[2].split()[0])
 
-        #mapped_reads[file_name] = int(subprocess.check_output(['samtools', 'flagstat', directory_path+'/'+file_name]).split('\n')[2].split()[0])
-        mapped_reads[prefix] = 3e6
+        #mapped_reads[prefix] = 3e6
     mean_read_count = array(mapped_reads.values()).mean()
     for exp,value in mapped_reads.iteritems():
         mapped_read_norm_factor[exp] = mean_read_count/value
@@ -267,9 +266,14 @@ def create_name_based_experiment(session, exp_name, group_name, lab='palsson', i
     if len(vals) < 6: return  #required to have experiment-type_strain_carbon-source_nitrogen-source_electron-acceptor_replicate
 
     exp_type = vals[0].split('-')
+
     try: supplements = vals[7]
     except:
-        try: supplements = vals[6]
+        try:
+            if vals[6][0:4] == 'anti':
+                supplements = ''
+            else:
+                supplements = vals[6]
         except: supplements = ''
 
     strain = session.get_or_create(data.Strain, name=vals[1])
@@ -304,19 +308,21 @@ def create_name_based_experiment(session, exp_name, group_name, lab='palsson', i
     session.commit()
     return experiment
 
-
+@timing
 def load_raw_experiment_data(experiment, loading_cutoff=5., bulk_file_load=True, five_prime=False, flip=True, norm_factor=1.):
-    type = experiment.type
-    group_name = experiment.group
 
-    file_path = os.path.join(settings.data_directory, type, 'bam', group_name, exp_name)
+    if experiment.group_name == 'default':
+        file_path = os.path.join(settings.data_directory, experiment.type, 'bam', experiment.name+'.bam')
+    else:
+        file_path = os.path.join(settings.data_directory, experiment.type, 'bam', experiment.group_name, experiment.name+'.bam')
+
 
     load_samfile_to_db(file_path, experiment.id, loading_cutoff=loading_cutoff,\
-                       bulk_file_load=bulk_file_load, five_prime=True, flip=flip,
+                       bulk_file_load=bulk_file_load, five_prime=five_prime, flip=flip,
                        norm_factor=norm_factor)
 
 
-def run_bowtie2(experiment, fastq_paths, prompt_overwrite=False, debug=False):
+def run_bowtie2(experiment, fastq_paths, overwrite=False, debug=False):
     """This function runs bowtie2 on the raw fastq files associated with an experiment object.
 
        It first checks to see if a bam file exists and by default prompts the user on whether or
@@ -330,19 +336,16 @@ def run_bowtie2(experiment, fastq_paths, prompt_overwrite=False, debug=False):
         bam_file_path = settings.data_directory+'/'+experiment.type+'/bam/'+experiment.group_name+'/'+experiment.name
         fastq_dir_path = settings.data_directory+'/'+experiment.type+'/fastq/'+experiment.group_name+'/'
 
-    if os.path.isfile(bam_file_path+'.bam') and prompt_overwrite:
-        if query_yes_no('Are you sure you want to rerun bowtie2 and overwrite\n' + bam_file_path):
-            os.remove(bam_file_path)
-        else:
-            return
+    if os.path.isfile(bam_file_path+'.bam') and overwrite:
+        os.remove(bam_file_path+'.bam')
     elif os.path.isfile(bam_file_path+'.bam'): return
 
     """Check for proper bowtie2 index and if not build it"""
     genbank_dir = settings.data_directory+'/annotation/genbank/'
     os.chdir(genbank_dir)
 
-    if not os.path.isfile(genbank_dir+'/NC_000913.3.1.bt2'):
-        os.system("bowtie2-build %s %s" % (genbank_dir+'/NC_000913.3.fna', 'NC_000913.3'))
+    if not os.path.isfile(genbank_dir+'/NC_000913.2.1.bt2'):
+        os.system("bowtie2-build %s %s" % (genbank_dir+'/NC_000913.2.fna', 'NC_000913.2'))
 
     R1_list = []
     R2_list = []
@@ -354,10 +357,10 @@ def run_bowtie2(experiment, fastq_paths, prompt_overwrite=False, debug=False):
     #print fastq_paths
     if len(R1_list+R2_list) == 0: #unpaired
         bowtie_string = "bowtie2 -N %d -p %d -x %s -U %s | samtools view -bS - | samtools sort - %s" % \
-                                   (1, 8, 'NC_000913.3', ','.join([fastq_dir_path+x for x in fastq_paths]), bam_file_path)
+                                   (1, 8, 'NC_000913.2', ','.join([fastq_dir_path+x for x in fastq_paths]), bam_file_path)
     else: #paired
         bowtie_string =  "bowtie2 -N %d -p %d -x %s -1 %s -2 %s | samtools view -bS - | samtools sort - %s" % \
-                                   (1, 8, 'NC_000913.3', ','.join([fastq_dir_path+x for x in R1_list]),
+                                   (1, 8, 'NC_000913.2', ','.join([fastq_dir_path+x for x in R1_list]),
                                                          ','.join([fastq_dir_path+x for x in R2_list]), bam_file_path)
 
     if debug:
@@ -700,8 +703,8 @@ def load_gem(chip_peak_analyses, base, data, genome):
     gem_path = settings.data_directory+'/chip_peaks/gem/'
     session = base.Session()
     for chip_peak_analysis in chip_peak_analyses:
-        gem_peak_file = open(gem_path+chip_peak_analysis.name+'/out_GPS_events.narrowPeak','r')
-
+        try: gem_peak_file = open(gem_path+chip_peak_analysis.name+'/out_GPS_events.narrowPeak','r')
+        except: continue
         for line in gem_peak_file.readlines():
             vals = line.split('\t')
 

@@ -14,7 +14,7 @@ from IPython import embed
 
 
 @timing
-def load_raw_files(directory_path, group_name='default', normalize=True):
+def load_raw_files(directory_path, group_name='default', normalize=True, overwrite=False):
     """This will load raw .bam files and affymetrix .CEL files into the associated
     genome_data tables.  The raw signal will go into a mongoDB genome_data table and
     the rest will go into corresponding SQL tables
@@ -61,7 +61,7 @@ def load_raw_files(directory_path, group_name='default', normalize=True):
 
     for experiment in set(experiments):
       if experiment.name in fastq_experiment_paths.keys():
-          data_loading.run_bowtie2(experiment, fastq_experiment_paths[experiment.name], prompt_overwrite=False, debug=False)
+          data_loading.run_bowtie2(experiment, fastq_experiment_paths[experiment.name], overwrite=overwrite, debug=False)
 
 
     if normalize:
@@ -69,16 +69,15 @@ def load_raw_files(directory_path, group_name='default', normalize=True):
     else:
         normalization_factors = {exp.name: 1. for exp in experiments}
 
-    #for experiment in experiments:
+    for experiment in set(experiments):
 
+        if experiment.type == 'ChIP_experiment':
+            norm_factor = normalization_factors[experiment.name]
+            #data_loading.load_raw_experiment_data(experiment, loading_cutoff=5., flip=False, five_prime=True, norm_factor=norm_factor)
 
-        #if experiment.type == 'ChIPExo':
-        #    norm_factor = normalization_factors[experiment.name]
-        #    data_loading.load_raw_experiment_data(experiment, loading_cutoff=5., flip=False, five_prime=True, norm_factor=norm_factor)
-
-        #elif experiment.type == 'RNAseq':
-        #    norm_factor = normalization_factors[experiment.name]
-        #    data_loading.load_raw_experiment_data(experiment, loading_cutoff=10., flip=True, five_prime=False, norm_factor=norm_factor)
+        elif experiment.type == 'rnaseq_experiment':
+            norm_factor = normalization_factors[experiment.name]
+            #data_loading.load_raw_experiment_data(experiment, loading_cutoff=10., flip=True, five_prime=False, norm_factor=norm_factor)
 
     session.close()
 
@@ -157,7 +156,7 @@ def load_experiment_sets(experiment_sets):
 
 
         vals = exp_group[0][0].split('_')
-        exp_group_name = '_'.join(vals[0:5]+vals[6:])
+        exp_group_name = '_'.join(vals[0:5]+vals[6:]+[parameter_name,'peaks'])
 
 
         exp = ome.query(ChIPExperiment).filter_by(name=exp_group[0][0]).one()
@@ -181,11 +180,11 @@ if __name__ == "__main__":
     base.omics_database.genome_data.drop()
     base.Base.metadata.create_all()
 
-    load_raw_files(settings.data_directory+'/chip_experiment/fastq/crp', group_name='crp', normalize=False)
-    load_raw_files(settings.data_directory+'/chip_experiment/fastq/yome', group_name='yome', normalize=False)
+    load_raw_files(settings.data_directory+'/chip_experiment/fastq/crp', group_name='crp', normalize=True)
+    load_raw_files(settings.data_directory+'/chip_experiment/fastq/yome', group_name='yome', normalize=True)
 
-    load_raw_files(settings.data_directory+'/rnaseq_experiment/fastq', normalize=False)
-    load_raw_files(settings.data_directory+'/rnaseq_experiment/bam', normalize=False)
+    load_raw_files(settings.data_directory+'/rnaseq_experiment/fastq', normalize=True)
+    #load_raw_files(settings.data_directory+'/rnaseq_experiment/bam', normalize=True)
     #load_raw_files(settings.data_directory+'/chip_experiment/bam', normalize=False)
     load_raw_files(settings.data_directory+'/microarray/asv2')
     load_raw_files(settings.data_directory+'/microarray/ec2')
@@ -195,20 +194,20 @@ if __name__ == "__main__":
     load_experiment_sets(experiment_sets)
 
     component_loading.load_genomes(base, components)
-    #component_loading.load_metacyc_proteins(base, components)
-    #component_loading.load_metacyc_bindsites(base, components)
-    #component_loading.load_metacyc_transcription_units(base, components)
-
-
     session = base.Session()
     genome = session.query(base.Genome).first()
 
-    #component_loading.write_gff(base, components, genome)
+    component_loading.load_metacyc_proteins(base, components, genome)
+    component_loading.load_metacyc_bindsites(base, components, genome)
+    component_loading.load_metacyc_transcription_units(base, components, genome)
 
-    #data_loading.run_cuffquant(base, data, genome, debug=False, overwrite=False)
-    #data_loading.run_cuffnorm(base, data, genome, debug=False, overwrite=False)
-    #data_loading.run_cuffdiff(base, data, genome, debug=False, overwrite=False)
-    #data_loading.run_gem(base, data, genome, debug=False, overwrite=False)
+
+    component_loading.write_gff(base, components, genome)
+
+    #data_loading.run_cuffquant(base, data, genome, debug=False, overwrite=True)
+    #data_loading.run_cuffnorm(base, data, genome, debug=False, overwrite=True)
+    #data_loading.run_cuffdiff(base, data, genome, debug=False, overwrite=True)
+    #data_loading.run_gem(base, data, genome, debug=False, overwrite=True)
 
 
     #data_loading.load_gem(session.query(ChIPPeakAnalysis).all(), base, data, genome)
@@ -219,8 +218,8 @@ if __name__ == "__main__":
     #data_loading.make_genome_region_map()
 
     genome_data = base.omics_database.genome_data
-    embed()
+
     #@timing
-    #genome_data.create_index([("data_set_id",ASCENDING), ("leftpos", ASCENDING)])
+    genome_data.create_index([("data_set_id",ASCENDING), ("leftpos", ASCENDING)])
 
     session.close()
