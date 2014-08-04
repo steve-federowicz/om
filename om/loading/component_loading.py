@@ -588,7 +588,7 @@ def load_genome(genome_filepath=None):
 
 
 @timing
-def write_gff(base, components, genome):
+def write_genome_annotation_gff(base, components, genome):
     session = base.Session()
 
     genbank_fasta_string = 'gi|'+genome.genbank_id+'|ref|'+genome.ncbi_id+'|'

@@ -101,6 +101,7 @@ def get_indirect_regulation_frame(rxn, factors=['ArcA','Fnr'], condition=None):
     return df
 
 
+
 def add_gene_group(name, genes):
     session = Session()
 
@@ -108,13 +109,41 @@ def add_gene_group(name, genes):
 
     gene_group = GeneGroup(name)
     session.add(gene_group)
+    session.commit()
 
     for gene in genes:
         if isinstance(gene, basestring):
             gene = session.query(Gene).filter(or_(Gene.name == gene, Gene.locus_id == gene)).first()
 
-        if gene: session.add(GeneGrouping(gene_group.id, gene.id))
+        if gene: session.get_or_create(GeneGrouping, gene_group_id=gene_group.id, gene_id=gene.id)
 
     session.flush()
     session.commit()
+    session.close()
+
+
+
+def write_genome_data_gff(genome_data_set_ids, function='avg'):
+    session = base.Session()
+
+    data_sets = session.query(DataSet).filter(DataSet.id.in_(genome_data_set_ids)).all()
+
+    if function:
+        vals = data_sets[0].name.split('_')
+        name = '_'.join(vals[0:5]+[6:]+[function]
+
+    genbank_fasta_string = 'gi|'+genome.genbank_id+'|ref|'+genome.ncbi_id+'|'
+
+    with open(settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff', 'wb') as gff_file:
+
+        for gene in session.query(components.Gene).all():
+
+            info_string = 'gene_id "%s"; transcript_id "%s"; gene_name "%s";' % (gene.locus_id, gene.locus_id, gene.name)
+
+            gff_string = '%s\t%s\t%s\t%d\t%d\t.\t%s\t.\t%s\n' % (genbank_fasta_string, 'ome_db', 'exon', gene.leftpos,
+                                                                                                         gene.rightpos,
+                                                                                                         gene.strand,
+                                                                                                         info_string)
+            gff_file.write(gff_string)
+
     session.close()

@@ -14,10 +14,12 @@ from IPython import embed
 
 
 @timing
-def load_raw_files(directory_path, group_name='default', normalize=True, overwrite=False):
-    """This will load raw .bam files and affymetrix .CEL files into the associated
-    genome_data tables.  The raw signal will go into a mongoDB genome_data table and
-    the rest will go into corresponding SQL tables
+def load_raw_files(directory_path, group_name='default', normalize=True, overwrite=False, raw=True):
+    """This will load raw .bam files, .gff files, and affymetrix .CEL files into the associated
+    genome_data tables.  A genome object must also be supplied for proper mappping. The raw signal
+    will go into a mongoDB genome_data table and the rest will go into corresponding SQL tables.
+    This function will by default assume name based loading, however, it can also be configured
+    to read a metadata file with corresponding experiment details.
     """
     session = base.Session()
 
@@ -69,15 +71,17 @@ def load_raw_files(directory_path, group_name='default', normalize=True, overwri
     else:
         normalization_factors = {exp.name: 1. for exp in experiments}
 
-    for experiment in set(experiments):
 
+    for experiment in set(experiments):
+        if not raw: continue
+        print experiment
         if experiment.type == 'ChIP_experiment':
             norm_factor = normalization_factors[experiment.name]
-            #data_loading.load_raw_experiment_data(experiment, loading_cutoff=5., flip=False, five_prime=True, norm_factor=norm_factor)
+            data_loading.load_raw_experiment_data(experiment, loading_cutoff=5., flip=False, five_prime=True, norm_factor=norm_factor)
 
         elif experiment.type == 'rnaseq_experiment':
             norm_factor = normalization_factors[experiment.name]
-            #data_loading.load_raw_experiment_data(experiment, loading_cutoff=10., flip=True, five_prime=False, norm_factor=norm_factor)
+            data_loading.load_raw_experiment_data(experiment, loading_cutoff=10., flip=True, five_prime=False, norm_factor=norm_factor)
 
     session.close()
 
@@ -180,10 +184,10 @@ if __name__ == "__main__":
     base.omics_database.genome_data.drop()
     base.Base.metadata.create_all()
 
-    load_raw_files(settings.data_directory+'/chip_experiment/fastq/crp', group_name='crp', normalize=True)
-    load_raw_files(settings.data_directory+'/chip_experiment/fastq/yome', group_name='yome', normalize=True)
+    load_raw_files(settings.data_directory+'/chip_experiment/fastq/crp', group_name='crp', normalize=False, raw=False)
+    load_raw_files(settings.data_directory+'/chip_experiment/fastq/yome', group_name='yome', normalize=False, raw=False)
 
-    load_raw_files(settings.data_directory+'/rnaseq_experiment/fastq', normalize=True)
+    load_raw_files(settings.data_directory+'/rnaseq_experiment/fastq', normalize=False, raw=True)
     #load_raw_files(settings.data_directory+'/rnaseq_experiment/bam', normalize=True)
     #load_raw_files(settings.data_directory+'/chip_experiment/bam', normalize=False)
     load_raw_files(settings.data_directory+'/microarray/asv2')
@@ -202,20 +206,20 @@ if __name__ == "__main__":
     component_loading.load_metacyc_transcription_units(base, components, genome)
 
 
-    component_loading.write_gff(base, components, genome)
+    component_loading.write_genome_annotation_gff(base, components, genome)
 
-    #data_loading.run_cuffquant(base, data, genome, debug=False, overwrite=True)
+    #data_loading.run_cuffquant(base, data, genome, debug=False)
     #data_loading.run_cuffnorm(base, data, genome, debug=False, overwrite=True)
     #data_loading.run_cuffdiff(base, data, genome, debug=False, overwrite=True)
-    #data_loading.run_gem(base, data, genome, debug=False, overwrite=True)
+    #data_loading.run_gem(base, data, genome, debug=True)
 
 
-    #data_loading.load_gem(session.query(ChIPPeakAnalysis).all(), base, data, genome)
-    #data_loading.load_cuffnorm(base, data)
-    #data_loading.load_cuffdiff()
-    #data_loading.load_arraydata(settings.data_directory+'/microarray/formatted_asv2.txt', type='asv2')
-    #data_loading.load_arraydata(settings.data_directory+'/microarray/formatted_ec2.txt', type='ec2')
-    #data_loading.make_genome_region_map()
+    data_loading.load_gem(session.query(ChIPPeakAnalysis).all(), base, data, genome)
+    data_loading.load_cuffnorm(base, data)
+    data_loading.load_cuffdiff()
+    data_loading.load_arraydata(settings.data_directory+'/microarray/formatted_asv2.txt', type='asv2')
+    data_loading.load_arraydata(settings.data_directory+'/microarray/formatted_ec2.txt', type='ec2')
+    data_loading.make_genome_region_map()
 
     genome_data = base.omics_database.genome_data
 

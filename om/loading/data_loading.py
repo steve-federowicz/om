@@ -399,8 +399,8 @@ def run_cuffquant(base, data, genome, overwrite=False, debug=False):
             os.chdir(out_path)
             os.system(cuffquant_string)
 
-        elif not os.path.exists(out_path):
-            os.mkdir(out_path)
+        elif not os.path.exists(out_path+'/abundances.cxb'):
+            if not os.path.exists(out_path): os.mkdir(out_path)
             os.chdir(out_path)
             os.system(cuffquant_string)
 
@@ -429,13 +429,13 @@ def run_cuffnorm(base, data, genome, debug=False, overwrite=False):
         print cuffnorm_string
         return
 
-    if os.path.exists(out_path+'/genes.fpkm_table') and overwrite:
+    if os.path.exists(out_path) and overwrite:
         os.system('rm -r '+out_path)
         os.mkdir(out_path)
         os.chdir(out_path)
         os.system(cuffnorm_string)
 
-    elif not os.path.exists(out_path+'/genes.fpkm_table'):
+    elif not os.path.exists(out_path):
         os.mkdir(out_path)
         os.chdir(out_path)
         os.system(cuffnorm_string)
@@ -500,7 +500,6 @@ def run_cuffdiff(base, data, genome, debug=False, overwrite=False):
 
     if debug:
         print cuffdiff_string
-        generate_cuffdiff_contrasts(exp_objects)
         return
 
     if os.path.exists(out_path) and overwrite:
@@ -514,7 +513,7 @@ def run_cuffdiff(base, data, genome, debug=False, overwrite=False):
         os.mkdir(out_path)
         os.chdir(out_path)
         generate_cuffdiff_contrasts(exp_objects)
-        os.system(cudiff_string)
+        os.system(cuffdiff_string)
 
 
 
