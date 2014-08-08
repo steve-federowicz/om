@@ -184,15 +184,18 @@ def query_yes_no(question, default="yes"):
 
 
 if __name__ == "__main__":
+    component_loading.load_kegg_pathways(base, components)
+    """
+    if not query_yes_no('This will drop the ENTIRE database and load from scratch, ' + \
+                        'are you sure you want to do this?'): sys.exit()
 
-    #if not query_yes_no('This will drop the ENTIRE database and load from scratch, ' + \
-    #                    'are you sure you want to do this?'): sys.exit()
+    
 
     base.Base.metadata.drop_all()
     base.omics_database.genome_data.drop()
     base.Base.metadata.create_all()
 
-
+	
     file_names = os.listdir(settings.data_directory+'/ChIP/bam') + \
                  os.listdir(settings.data_directory+'/RNAseq/bam')+ \
                  os.listdir(settings.data_directory+'/microarray/asv2') + \
@@ -222,7 +225,7 @@ if __name__ == "__main__":
     #for exp in ome.query(RNASeqExperiment).all(): data_loading.run_cuffquant(exp)
 
     #data_loading.run_cuffnorm(experiment_sets['RNAseq'])
-    """query all RNASeqExperiments grouped across replicates"""
+    
     rna_seq_exp_sets = session.query(NormalizedExpression).join(AnalysisComposition, NormalizedExpression.id == AnalysisComposition.analysis_id).\
                                                            join(RNASeqExperiment, RNASeqExperiment.id == AnalysisComposition.data_set_id).all()
     #data_loading.run_cuffdiff(rna_seq_exp_sets, debug=False)
@@ -243,11 +246,12 @@ if __name__ == "__main__":
     data_loading.load_cuffdiff()
     data_loading.load_arraydata(settings.data_directory+'/microarray/formatted_asv2.txt', type='asv2')
     data_loading.load_arraydata(settings.data_directory+'/microarray/formatted_ec2.txt', type='ec2')
-    data_loading.make_genome_region_map()
+    """
+    
 
-    genome_data = base.omics_database.genome_data
+    #genome_data = base.omics_database.genome_data
 
-    @timing
-    genome_data.create_index([("data_set_id",ASCENDING), ("leftpos", ASCENDING)])
+    #@timing
+    #genome_data.create_index([("data_set_id",ASCENDING), ("leftpos", ASCENDING)])
 
-    session.close()
+    #session.close()
