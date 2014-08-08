@@ -130,7 +130,7 @@ def write_genome_data_gff(genome_data_set_ids, function='avg'):
 
     if function:
         vals = data_sets[0].name.split('_')
-        name = '_'.join(vals[0:5]+[6:]+[function]
+        #name = '_'.join(vals[0:5]+[6:]+[function]
 
     genbank_fasta_string = 'gi|'+genome.genbank_id+'|ref|'+genome.ncbi_id+'|'
 

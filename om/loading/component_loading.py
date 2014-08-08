@@ -520,25 +520,21 @@ def load_metacyc_promoters(ome, metacyc_ID=None):
 
 
 @timing
-def load_kegg_pathways(session):
+def load_kegg_pathways(base, components):
     # this table should probably get re-designed properly with a pathways table
     # and a separate pathway genes secondary table - TODO
-    kegg_pathways = open(settings.data_directory + '/annotation/KEGG/ecoli_KEGG_pathways.txt','r')
-    kegg_dataset = get_or_create(session, Dataset, name="kegg")
+    session = base.Session()
+    kegg_pathways = open(settings.data_directory+'/annotation/KEGG/ecoli_KEGG_pathways.txt','r')
+    kegg_dataset = session.get_or_create(base.DataSource, name="kegg")
     for line in kegg_pathways.readlines():
         vals = line.rstrip('\r\n').split('\t')
         bnums = vals[2].split(',')
         pathway_ID = vals[0]
         pathway_name = vals[1].strip()
-        kegg_pathway = Pathway(name=pathway_name)
+        kegg_pathway = session.get_or_create(components.GeneGroup, name = pathway_name)
         for bnum in bnums:
-            kegg_pathway.genes.append(
-                session.query(Gene).filter_by(bnum=bnum).first())
-        session.add(kegg_pathway)
-        session.commit()
-        id_entry = id2otherid(dataset=kegg_dataset, otherid=pathway_ID)
-        id_entry.id = kegg_pathway.id
-        session.add(id_entry)
+            gene = session.query(components.Gene).filter_by(locus_id=bnum).one()
+            session.get_or_create(components.GeneGrouping, group_id = kegg_pathway.id, gene_id = gene.id)
         session.commit()
 
 

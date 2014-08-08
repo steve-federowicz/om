@@ -292,8 +292,8 @@ class GeneGroup(Base):
     __table_args__ = (UniqueConstraint('name'),{})
 
     def __repr__(self):
-        return "Gene Group (#%d, %s): %s" % \
-            (self.id, self.name, ', '.join([g.name for g in self.genes]))
+        return "Gene Group (#%d, %s) %d genes" % \
+            (self.id, self.name, len(self.genes))
 
     def __init__(self, name):
         self.name = name

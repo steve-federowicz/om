@@ -184,10 +184,10 @@ if __name__ == "__main__":
     base.omics_database.genome_data.drop()
     base.Base.metadata.create_all()
 
-    load_raw_files(settings.data_directory+'/chip_experiment/fastq/crp', group_name='crp', normalize=False, raw=False)
-    load_raw_files(settings.data_directory+'/chip_experiment/fastq/yome', group_name='yome', normalize=False, raw=False)
+    load_raw_files(settings.data_directory+'/chip_experiment/fastq/crp', group_name='crp', normalize=True, raw=True)
+    load_raw_files(settings.data_directory+'/chip_experiment/fastq/yome', group_name='yome', normalize=True, raw=True)
 
-    load_raw_files(settings.data_directory+'/rnaseq_experiment/fastq', normalize=False, raw=True)
+    load_raw_files(settings.data_directory+'/rnaseq_experiment/fastq', normalize=True, raw=True)
     #load_raw_files(settings.data_directory+'/rnaseq_experiment/bam', normalize=True)
     #load_raw_files(settings.data_directory+'/chip_experiment/bam', normalize=False)
     load_raw_files(settings.data_directory+'/microarray/asv2')
