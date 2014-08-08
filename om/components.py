@@ -284,7 +284,7 @@ class GeneGroup(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100))
-
+    
     genes = relationship("Gene", secondary="gene_grouping",\
                                  primaryjoin = id == GeneGrouping.group_id,\
                                  backref="groups")

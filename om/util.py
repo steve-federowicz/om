@@ -8,6 +8,8 @@ import pandas as pd
 import cobra
 import cPickle as pickle
 
+pd.options.display.max_columns = 20
+
 model = pickle.load(open(settings.data_directory+'/models/iJO1366.pickle', "rb"))
 #model = cobra.io.load_matlab_model(settings.data_directory+'/models/iJO1366')
 
@@ -54,24 +56,28 @@ def get_regulation_data(cobra_rxn_id, verbose=True, as_dataframe=True):
 
     gpr_genes = [ome.query(Gene.name).filter_by(locus_id=gene.id).scalar() for gene in rxn.genes]
 
-    gpr_regulation = ome.query(cpge.expression_value, cpge.target, cpge.gene_name,cpge.diff_exp_id,
+    gpr_regulation = ome.query(cpge.value, cpge.strain1, cpge.target, cpge.gene_name,cpge.diff_exp_id,
                                cpge.carbon_source, cpge.nitrogen_source, cpge.electron_acceptor).\
                                  filter(cpge.gene_name.in_(gpr_genes)).\
-                                 group_by(cpge.expression_value, cpge.target, cpge.gene_name,
+                                 group_by(cpge.value, cpge.strain1, cpge.target, cpge.gene_name,
                                           cpge.diff_exp_id, cpge.carbon_source, cpge.nitrogen_source,
                                           cpge.electron_acceptor).all()
 
 
     if verbose:
-        data = [{'value':x.expression_value, 'type':'transcriptional', 'regulator':x.target, 'gene':x.gene_name,
+        data = [{'value':x.value, 'strain':x.strain1, 'type':'transcriptional', 'regulator':x.target, 'gene':x.gene_name,
                  'dataset':x.diff_exp_id, 'carbon_source':x.carbon_source, 'nitrogen_source':x.nitrogen_source,
                  'electron_acceptor':x.electron_acceptor} for x in gpr_regulation]
     else:
-        data = [{'value':x.expression_value, 'type':'transcriptional', 'regulator':x.target, 'gene':x.gene_name,
+        data = [{'value':x.value, 'type':'transcriptional', 'regulator':x.target, 'gene':x.gene_name,
                  'dataset':x.diff_exp_id} for x in gpr_regulation]
 
-    if as_dataframe: return pd.DataFrame(data, columms=['dataset','regulator','carbon_source','nitrogen_source','electron_acceptor','gene','type','value'])
-
+    if as_dataframe: 
+    	try: return pd.DataFrame(data, columns=['dataset','regulator','strain','carbon_source',
+    											'nitrogen_source','electron_acceptor','gene',
+    											'type','value']).sort(['gene','strain'])
+    	except: return []
+    else: return data
 
 
 def get_indirect_regulation_frame(rxn, factors=['ArcA','Fnr'], condition=None):

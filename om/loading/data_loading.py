@@ -790,24 +790,33 @@ def query_yes_no(question, default="yes"):
 def make_genome_region_map():
     session = base.Session()
 
-    data.GenomeRegionMap.__table__.drop()
+    #data.GenomeRegionMap.__table__.drop()
     data.GenomeRegionMap.__table__.create()
 
 
-    genome_regions = session.query(data.GenomeRegion).all()
-
-    for genome_region_1 in genome_regions:
-        #print genome_region_1
-        for genome_region_2 in genome_regions:
+    #genome_regions = session.query(data.GenomeRegion).all()
+    duplicate_set = set()
+    for peak in session.query(data.ChIPPeakData).all():
+        genome_region_1 = peak.genome_region
+        print genome_region_1
+        for tu in session.query(components.TU).all():
+            genome_region_2 = tu.genome_region
+            
+            if (genome_region_1.id, genome_region_2.id) in duplicate_set: continue
+            else: duplicate_set.add((genome_region_1.id, genome_region_2.id))
+            
             if genome_region_1.id == genome_region_2.id: continue
 
             midpoint_1 = (genome_region_1.leftpos + genome_region_1.rightpos)/2
             midpoint_2 = (genome_region_2.leftpos + genome_region_2.rightpos)/2
             midpoint_distance = midpoint_1 - midpoint_2
-            left_right_distance = genome_region_1.leftpos - genome_region_2.rightpos
             right_left_distance = genome_region_1.rightpos - genome_region_2.leftpos
-            if abs(midpoint_distance) < 1000 or abs(left_right_distance) < 1000 or abs(right_left_distance) < 1000:
+            left_right_distance = genome_region_1.leftpos - genome_region_2.rightpos
+            if abs(right_left_distance) < 500 and genome_region_2.strand == '+':
+            	session.add(data.GenomeRegionMap(genome_region_1.id, genome_region_2.id, midpoint_distance))
+            elif abs(left_right_distance) < 500 and genome_region_2.strand == '-':
                 session.add(data.GenomeRegionMap(genome_region_1.id, genome_region_2.id, midpoint_distance))
-
-    session.commit()
+		    
+		session.flush()
+    	session.commit()
     session.close()
