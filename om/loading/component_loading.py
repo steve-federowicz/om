@@ -535,9 +535,8 @@ def load_kegg_pathways(base, components):
         for bnum in bnums:
             gene = session.query(components.Gene).filter_by(locus_id=bnum).one()
             session.get_or_create(components.GeneGrouping, group_id = kegg_pathway.id, gene_id = gene.id)
-    
     session.commit()
-	session.close()
+    session.close()
 
 
 @timing

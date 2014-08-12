@@ -259,7 +259,6 @@ def calculate_normalization_factors(experiment_type, group_name):
     return mapped_read_norm_factor
 
 
-@timing
 def create_name_based_experiment(session, exp_name, group_name, lab='palsson', institution='UCSD'):
     vals = exp_name.split('_')
 
@@ -307,6 +306,7 @@ def create_name_based_experiment(session, exp_name, group_name, lab='palsson', i
 
     session.commit()
     return experiment
+
 
 @timing
 def load_raw_experiment_data(experiment, loading_cutoff=5., bulk_file_load=True, five_prime=False, flip=True, norm_factor=1.):
@@ -680,8 +680,8 @@ def load_cuffdiff():
                     else: exp_name += x[i]+'/'+y[i]+'_'
                 exp_name = exp_name.rstrip('_')
 
-            try: diff_exp = session.get_or_create(data.DifferentialExpression, name=exp_name, replicate=1, norm_method='classic-fpkm',fdr=.05)
-            except: embed()
+            diff_exp = session.get_or_create(data.DifferentialExpression, name=exp_name, replicate=1, norm_method='classic-fpkm',fdr=.05)
+
 
             exp1 = session.query(data.Analysis).filter_by(name=vals[4]).one()
             exp2 = session.query(data.Analysis).filter_by(name=vals[5]).one()
@@ -790,7 +790,7 @@ def query_yes_no(question, default="yes"):
 def make_genome_region_map():
     session = base.Session()
 
-    #data.GenomeRegionMap.__table__.drop()
+    data.GenomeRegionMap.__table__.drop()
     data.GenomeRegionMap.__table__.create()
 
 
@@ -801,10 +801,10 @@ def make_genome_region_map():
         print genome_region_1
         for tu in session.query(components.TU).all():
             genome_region_2 = tu.genome_region
-            
+
             if (genome_region_1.id, genome_region_2.id) in duplicate_set: continue
             else: duplicate_set.add((genome_region_1.id, genome_region_2.id))
-            
+
             if genome_region_1.id == genome_region_2.id: continue
 
             midpoint_1 = (genome_region_1.leftpos + genome_region_1.rightpos)/2
@@ -816,7 +816,7 @@ def make_genome_region_map():
             	session.add(data.GenomeRegionMap(genome_region_1.id, genome_region_2.id, midpoint_distance))
             elif abs(left_right_distance) < 500 and genome_region_2.strand == '-':
                 session.add(data.GenomeRegionMap(genome_region_1.id, genome_region_2.id, midpoint_distance))
-		    
-		session.flush()
-    	session.commit()
+
+        session.flush()
+    session.commit()
     session.close()
