@@ -43,14 +43,14 @@ class GenomeRegion(Base):
     __tablename__ = 'genome_region'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    genome_id = Column(Integer, ForeignKey('genome.id'))
+    #genome_id = Column(Integer, ForeignKey('genome.id'))
     name = Column(String(10))
     leftpos = Column(Integer, nullable=False)
     rightpos = Column(Integer, nullable=False)
     strand = Column(String(1), nullable=False)
     type = Column(String(20))
 
-    __table_args__ = (UniqueConstraint('leftpos','rightpos','strand','genome_id'),{})
+    __table_args__ = (UniqueConstraint('leftpos','rightpos','strand'),{})
 
     __mapper_args__ = {'polymorphic_identity': 'genome_region',
                        'polymorphic_on': type
@@ -63,11 +63,10 @@ class GenomeRegion(Base):
     def __repr__dict__(self):
         return {"name":self.name,"id":self.id,"leftpos":self.leftpos,"rightpos":self.rightpos,"strand":self.strand}
 
-    def __init__(self, leftpos, rightpos, strand, genome_id, name=None):
+    def __init__(self, leftpos, rightpos, strand, name=None):
         self.leftpos = leftpos
         self.rightpos = rightpos
         self.strand = strand
-        self.genome_id = genome_id
         self.name = name
 
 

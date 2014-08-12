@@ -3,12 +3,14 @@ from om.data import *
 from om.components import *
 
 from IPython.display import HTML
-from matplotlib import pylab as plt
+from scipy.spatial.distance import pdist, squareform
+from scipy.cluster.hierarchy import linkage, dendrogram
+
 import pandas as pd
+import numpy as np
 import cobra
 import cPickle as pickle
 
-pd.options.display.max_columns = 20
 
 model = pickle.load(open(settings.data_directory+'/models/iJO1366.pickle', "rb"))
 #model = cobra.io.load_matlab_model(settings.data_directory+'/models/iJO1366')
@@ -72,7 +74,7 @@ def get_regulation_data(cobra_rxn_id, verbose=True, as_dataframe=True):
         data = [{'value':x.value, 'type':'transcriptional', 'regulator':x.target, 'gene':x.gene_name,
                  'dataset':x.diff_exp_id} for x in gpr_regulation]
 
-    if as_dataframe: 
+    if as_dataframe:
     	try: return pd.DataFrame(data, columns=['dataset','regulator','strain','carbon_source',
     											'nitrogen_source','electron_acceptor','gene',
     											'type','value']).sort(['gene','strain'])
@@ -153,3 +155,90 @@ def write_genome_data_gff(genome_data_set_ids, function='avg'):
             gff_file.write(gff_string)
 
     session.close()
+
+
+
+
+def gene_heatmap(gene_list, analysis_type=GeneExpressionData, dataset_type='%',
+                                                              strain1=ome.query(Strain).all(), strain2=None,
+                                                              environments1=ome.query(InVivoEnvironment).all(), environments2=None):
+
+    dataset_id_map = {}
+    if analysis_type == GeneExpressionData:
+        all_data = ome.query(analysis_type).filter(and_(analysis_type.gene_name.in_([g.name for g in gene_list]),
+                                                        analysis_type.dataset_type.ilike(dataset_type))).all()
+
+        datasets = set(['_'.join([x.dataset_type,x.strain,x.carbon_source,x.nitrogen_source,x.electron_acceptor]) for x in all_data])
+
+
+        genes_data = pd.DataFrame(index=[g.name for g in gene_list], columns=datasets)
+
+        for x in all_data:
+            genes_data.ix[x.gene_name]['_'.join([x.dataset_type,x.strain,x.carbon_source,x.nitrogen_source,x.electron_acceptor])] = np.log(x.value)
+
+
+    elif analysis_type == DifferentialGeneExpressionData:
+        all_data = ome.query(analysis_type).\
+                              filter(and_(analysis_type.gene_id.in_([g.id for g in gene_list]),
+                                          analysis_type.strain1.in_([x.name for x in strain1]),
+                                          analysis_type.strain2.in_([x.name for x in strain2]),
+                                          analysis_type.environment_id_1.in_([x.id for x in environments1]),
+                                          analysis_type.environment_id_2.in_([x.id for x in environments2]))).all()
+
+        datasets = set(['_'.join([x.strain1+'/'+x.strain2,x.carbon_source1+'/'+x.carbon_source2,x.nitrogen_source1,x.electron_acceptor1]) for x in all_data])
+        genes_data = pd.DataFrame(index=[g.name for g in gene_list], columns=datasets)
+
+        for x in all_data:
+            genes_data.ix[x.gene_name]['_'.join([x.strain1+'/'+x.strain2,x.carbon_source1+'/'+x.carbon_source2,x.nitrogen_source1,x.electron_acceptor1])] = x.value
+
+
+    elif analysis_type == ChIPPeakGeneExpression:
+        all_data = ome.query(analysis_type).\
+                              filter(and_(analysis_type.gene_id.in_([g.id for g in gene_list]),
+                                          analysis_type.strain1.in_([x.name for x in strain1]),
+                                          analysis_type.strain2.in_([x.name for x in strain2]),
+                                          analysis_type.environment_id.in_([x.id for x in environments2]))).all()
+
+        datasets = set(['_'.join([x.strain1,x.carbon_source,x.nitrogen_source,x.electron_acceptor]) for x in all_data])
+        genes_data = pd.DataFrame(index=[g.name for g in gene_list], columns=datasets)
+
+        for x in all_data:
+            genes_data.ix[x.gene_name]['_'.join([x.strain1,x.carbon_source,x.nitrogen_source,x.electron_acceptor])] = x.value
+
+
+
+    genes_data = genes_data.dropna(how='all').fillna(0.)
+    genes_data = genes_data.replace([np.inf], 10.)
+    genes_data = genes_data.replace([-np.inf], -10.)
+    col_labels = list(genes_data.index)
+    row_labels = list(datasets)
+
+
+    heatmap_data = []
+    for i,g in enumerate(genes_data.index):
+        for j,c in enumerate(genes_data.columns):
+            heatmap_data.append({"row": j+1, "col": i+1, "value": genes_data.ix[g][c]})
+
+
+    dm = genes_data
+    D1 = squareform(pdist(dm, metric='euclidean'))
+    D2 = squareform(pdist(dm.T, metric='euclidean'))
+
+    Y = linkage(D1, method='single')
+    Z1 = dendrogram(Y, labels=dm.index)
+
+    Y = linkage(D2, method='single')
+    Z2 = dendrogram(Y, labels=dm.columns)
+
+    hccol = Z1['leaves']
+    hcrow = Z2['leaves']
+
+    hccol = [x+1 for x in hccol]
+    hcrow = [x+1 for x in hcrow]
+
+    #return hcrow,hccol,row_labels,col_labels,heatmap_data,dm
+    return {'hcrow': hcrow, 'hccol': hccol, 'row_labels':row_labels,
+                                            'col_labels':col_labels,
+                                            'heatmap_data':heatmap_data,
+                                            'maxval' : max([x['value'] for x in heatmap_data]),
+                                            'minval' : min([x['value'] for x in heatmap_data])}
