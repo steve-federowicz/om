@@ -812,9 +812,9 @@ def make_genome_region_map():
             midpoint_distance = midpoint_1 - midpoint_2
             right_left_distance = genome_region_1.rightpos - genome_region_2.leftpos
             left_right_distance = genome_region_1.leftpos - genome_region_2.rightpos
-            if abs(right_left_distance) < 500 and genome_region_2.strand == '+':
+            if abs(right_left_distance) < 1000 and genome_region_2.strand == '+':
             	session.add(data.GenomeRegionMap(genome_region_1.id, genome_region_2.id, midpoint_distance))
-            elif abs(left_right_distance) < 500 and genome_region_2.strand == '-':
+            elif abs(left_right_distance) < 1000 and genome_region_2.strand == '-':
                 session.add(data.GenomeRegionMap(genome_region_1.id, genome_region_2.id, midpoint_distance))
 
         session.flush()
