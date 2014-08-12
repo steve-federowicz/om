@@ -74,7 +74,7 @@ def load_raw_files(directory_path, group_name='default', normalize=True, overwri
 
     for experiment in set(experiments):
         if not raw: continue
-        print experiment
+
         if experiment.type == 'ChIP_experiment':
             norm_factor = normalization_factors[experiment.name]
             data_loading.load_raw_experiment_data(experiment, loading_cutoff=5., flip=False, five_prime=True, norm_factor=norm_factor)
