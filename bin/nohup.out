@@ -1,0 +1,181 @@
+starting load_raw_files ...load_raw_files complete (1.55 sec)
+starting load_raw_files ...load_raw_files complete (1.17 sec)
+starting load_raw_files ...load_raw_files complete (2.55 sec)
+starting load_raw_files ...load_raw_files complete (0.77 sec)
+starting load_raw_files ...load_raw_files complete (0.85 sec)
+starting load_genomes ...starting load_genbank ...load_genbank complete (16.08 sec)
+load_genomes complete (16.08 sec)
+starting load_metacyc_proteins ...MetaCyc issue, gene: EG11611 does not exist
+Exception, MetaCyc gene:b1016 not found in genbank
+Exception, MetaCyc gene:b4223 not found in genbank
+MetaCyc issue, gene: EG12238 does not exist
+MetaCyc issue, gene: G7392 does not exist
+Exception, MetaCyc gene:b1935 not found in genbank
+MetaCyc issue, gene: EG11992 does not exist
+Exception, MetaCyc gene:b0257 not found in genbank
+MetaCyc issue, gene: G7798 does not exist
+MetaCyc issue, gene: EG11386 does not exist
+MetaCyc issue, gene: EG11778 does not exist
+MetaCyc issue, gene: EG10010 does not exist
+MetaCyc issue, gene: EG12161 does not exist
+MetaCyc issue, gene: G6162 does not exist
+Exception, MetaCyc gene:b2680 not found in genbank
+MetaCyc issue, gene: G8204 does not exist
+Exception, MetaCyc gene:b2640 not found in genbank
+MetaCyc issue, gene: G6288 does not exist
+MetaCyc issue, gene: G0-10558 does not exist
+MetaCyc issue, gene: G0-10559 does not exist
+Exception, MetaCyc gene:b0362 not found in genbank
+MetaCyc issue, gene: G7903 does not exist
+MetaCyc issue, gene: EG12208 does not exist
+Exception, MetaCyc gene:b0012 not found in genbank
+MetaCyc issue, gene: G7053 does not exist
+Exception, MetaCyc gene:b1228 not found in genbank
+MetaCyc issue, gene: G6114 does not exist
+Exception, MetaCyc gene:b4610 not found in genbank
+Exception, MetaCyc gene:b4605 not found in genbank
+MetaCyc issue, gene: G6722 does not exist
+MetaCyc issue, gene: G6161 does not exist
+MetaCyc issue, gene: EG12103 does not exist
+MetaCyc issue, gene: G8221 does not exist
+Exception, MetaCyc gene:b4283 not found in genbank
+Exception, MetaCyc gene:b1510 not found in genbank
+Exception, MetaCyc gene:b1371 not found in genbank
+MetaCyc issue, gene: G7671 does not exist
+MetaCyc issue, gene: EG12857 does not exist
+Exception, MetaCyc gene:b4285 not found in genbank
+MetaCyc issue, gene: G6609 does not exist
+MetaCyc issue, gene: G7898 does not exist
+MetaCyc issue, gene: G7042 does not exist
+MetaCyc issue, gene: G0-10431 does not exist
+MetaCyc issue, gene: G7383 does not exist
+Exception, MetaCyc gene:b2639 not found in genbank
+Exception, MetaCyc gene:b1509 not found in genbank
+MetaCyc issue, gene: G7120 does not exist
+MetaCyc issue, gene: G6348 does not exist
+MetaCyc issue, gene: G7478 does not exist
+MetaCyc issue, gene: G6927 does not exist
+MetaCyc issue, gene: G7389 does not exist
+MetaCyc issue, gene: G7393 does not exist
+MetaCyc issue, gene: G7154 does not exist
+Exception, MetaCyc gene:b2862 not found in genbank
+MetaCyc issue, gene: G8209 does not exist
+MetaCyc issue, gene: G7052 does not exist
+MetaCyc issue, gene: G0-10557 does not exist
+MetaCyc issue, gene: G0-10556 does not exist
+Exception, MetaCyc gene:b0322 not found in genbank
+MetaCyc issue, gene: G0-10555 does not exist
+MetaCyc issue, gene: G0-10554 does not exist
+MetaCyc issue, gene: EG11777 does not exist
+MetaCyc issue, gene: G6632 does not exist
+Exception, MetaCyc gene:b3682 not found in genbank
+MetaCyc issue, gene: EG11986 does not exist
+MetaCyc issue, gene: G8208 does not exist
+Exception, MetaCyc gene:b1998 not found in genbank
+MetaCyc issue, gene: G7054 does not exist
+Exception, MetaCyc gene:b0255 not found in genbank
+MetaCyc issue, gene: G7155 does not exist
+Exception, MetaCyc gene:b1149 not found in genbank
+MetaCyc issue, gene: G6160 does not exist
+MetaCyc issue, gene: EG12226 does not exist
+MetaCyc issue, gene: G6535 does not exist
+MetaCyc issue, gene: G6610 does not exist
+MetaCyc issue, gene: G7041 does not exist
+MetaCyc issue, gene: EG11496 does not exist
+Exception, MetaCyc gene:b2087 not found in genbank
+MetaCyc issue, gene: G6163 does not exist
+Exception, MetaCyc gene:b2090 not found in genbank
+Exception, MetaCyc gene:b2087 not found in genbank
+MetaCyc issue, gene: G6113 does not exist
+Exception, MetaCyc gene:b3808 not found in genbank
+Exception, MetaCyc gene:b3036 not found in genbank
+Exception, MetaCyc gene:b4274 not found in genbank
+MetaCyc issue, gene: G6119 does not exist
+Exception, MetaCyc gene:b2649 not found in genbank
+MetaCyc issue, gene: G7557 does not exist
+Exception, MetaCyc gene:b2941 not found in genbank
+MetaCyc issue, gene: G7066 does not exist
+MetaCyc issue, gene: G7536 does not exist
+Exception, MetaCyc gene:b1016 not found in genbank
+MetaCyc issue, gene: G7760 does not exist
+Exception, MetaCyc gene:b0057 not found in genbank
+MetaCyc issue, gene: G7391 does not exist
+MetaCyc issue, gene: G7897 does not exist
+Exception, MetaCyc gene:b3776 not found in genbank
+MetaCyc issue, gene: G7556 does not exist
+Exception, MetaCyc gene:b1369 not found in genbank
+Exception, MetaCyc gene:b3682 not found in genbank
+Exception, MetaCyc gene:b1470 not found in genbank
+MetaCyc issue, gene: EG10498 does not exist
+MetaCyc issue, gene: G7044 does not exist
+Exception, MetaCyc gene:b1142 not found in genbank
+MetaCyc issue, gene: G6926 does not exist
+Exception, MetaCyc gene:b2090 not found in genbank
+Exception, MetaCyc gene:b0374 not found in genbank
+Exception, MetaCyc gene:b2337 not found in genbank
+MetaCyc issue, gene: G7474 does not exist
+Exception, MetaCyc gene:b2857 not found in genbank
+MetaCyc issue, gene: G8205 does not exist
+MetaCyc issue, gene: G6376 does not exist
+MetaCyc issue, gene: G7822 does not exist
+MetaCyc issue, gene: G7065 does not exist
+load_metacyc_proteins complete (53.38 sec)
+starting load_metacyc_bindsites ...load_metacyc_bindsites complete (93.79 sec)
+starting load_metacyc_transcription_units ...Exception, MetaCyc gene:b2941 not found in genbank
+Exception, MetaCyc gene:b3782 not found in genbank
+Exception, MetaCyc gene:b4713 not found in genbank
+Exception, MetaCyc gene:b3036 not found in genbank
+Exception, MetaCyc gene:b3036 not found in genbank
+Exception, MetaCyc gene:b0012 not found in genbank
+Exception, MetaCyc gene:b0012 not found in genbank
+Exception, MetaCyc gene:b4283 not found in genbank
+Exception, MetaCyc gene:b4712 not found in genbank
+Exception, MetaCyc gene:b4416 not found in genbank
+Exception, MetaCyc gene:b2087 not found in genbank
+Exception, MetaCyc gene:b3036 not found in genbank
+Exception, MetaCyc gene:b2090 not found in genbank
+Exception, MetaCyc gene:b4223 not found in genbank
+Exception, MetaCyc gene:b3782 not found in genbank
+Exception, MetaCyc gene:b2621 not found in genbank
+load_metacyc_transcription_units complete (64.44 sec)
+starting write_genome_annotation_gff ...write_genome_annotation_gff complete (0.43 sec)
+starting load_gem ...load_gem complete (140.72 sec)
+starting load_cuffnorm ...load_cuffnorm complete (1216.94 sec)
+starting load_cuffdiff ...load_cuffdiff complete (385.36 sec)
+starting load_arraydata ...load_arraydata complete (1065.64 sec)
+starting load_arraydata ...load_arraydata complete (725.21 sec)
+starting make_genome_region_map ...Traceback (most recent call last):
+  File "load_db.py", line 222, in <module>
+    data_loading.make_genome_region_map()
+  File "/Users/dbuser/om/om/__init__.py", line 19, in wrapper
+    res = function(*args, **kwargs)
+  File "/Users/dbuser/om/om/loading/data_loading.py", line 794, in make_genome_region_map
+    data.GenomeRegionMap.__table__.create()
+  File "/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sqlalchemy/sql/schema.py", line 648, in create
+    checkfirst=checkfirst)
+  File "/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 1547, in _run_visitor
+    conn._run_visitor(visitorcallable, element, **kwargs)
+  File "/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 1194, in _run_visitor
+    **kwargs).traverse_single(element)
+  File "/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sqlalchemy/sql/visitors.py", line 119, in traverse_single
+    return meth(obj, **kw)
+  File "/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sqlalchemy/sql/ddl.py", line 728, in visit_table
+    self.connection.execute(CreateTable(table))
+  File "/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 720, in execute
+    return meth(self, multiparams, params)
+  File "/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sqlalchemy/sql/ddl.py", line 67, in _execute_on_connection
+    return connection._execute_ddl(self, multiparams, params)
+  File "/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 774, in _execute_ddl
+    compiled
+  File "/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 947, in _execute_context
+    context)
+  File "/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 1108, in _handle_dbapi_exception
+    exc_info
+  File "/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sqlalchemy/util/compat.py", line 185, in raise_from_cause
+    reraise(type(exception), exception, tb=exc_tb)
+  File "/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 940, in _execute_context
+    context)
+  File "/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sqlalchemy/engine/default.py", line 435, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.ProgrammingError: (ProgrammingError) relation "genome_region_map" already exists
+ '\nCREATE TABLE genome_region_map (\n\tgenome_region_id_1 INTEGER NOT NULL, \n\tgenome_region_id_2 INTEGER NOT NULL, \n\tdistance INTEGER, \n\tPRIMARY KEY (genome_region_id_1, genome_region_id_2), \n\tUNIQUE (genome_region_id_1, genome_region_id_2), \n\tFOREIGN KEY(genome_region_id_1) REFERENCES genome_region (id), \n\tFOREIGN KEY(genome_region_id_2) REFERENCES genome_region (id)\n)\n\n' {}
