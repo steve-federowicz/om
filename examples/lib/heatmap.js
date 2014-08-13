@@ -1,5 +1,8 @@
 define([], function() {
   return {
+    heatmap: heatmap };
+
+  function heatmap(){
 
 var HeatmapView = IPython.DOMWidgetView.extend({
 
@@ -324,5 +327,6 @@ var HeatmapView = IPython.DOMWidgetView.extend({
 
 
         }
+}
+                                               }}
 });
-}});
