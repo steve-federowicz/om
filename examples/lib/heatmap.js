@@ -1,7 +1,7 @@
-define(["widgets/js/widget", "d3"], function(WidgetManager, d3) {
-  return {
+require.config({paths: {d3: "https://mpld3.github.io/js/d3.v3.min"}});
 
-var HeatmapView = IPython.DOMWidgetView.extend({
+require(["widgets/js/widget", "d3"], function(WidgetManager, d3){
+    var HeatmapView = IPython.DOMWidgetView.extend({
 
         render: function(){
 
@@ -15,9 +15,9 @@ var HeatmapView = IPython.DOMWidgetView.extend({
                  // - margin.top - margin.bottom,
                   //gridSize = Math.floor(width / 24),
                 legendElementWidth = cellSize*2.5,
-                colorBuckets = 9;
+                colorBuckets = 20;
                 //colors = ['#005824','#1A693B','#347B53','#4F8D6B','#699F83','#83B09B','#9EC2B3','#B8D4CB','#D2E6E3','#EDF8FB','#FFFFFF','#F1EEF6','#E6D3E1','#DBB9CD','#D19EB9','#C684A4','#BB6990','#B14F7C','#A63467','#9B1A53','#91003F'];
-            var colors = ["#081d58","#253494","#225ea8","#1d91c0","#41b6c4","#7fcdbb","#c7e9b4","#edf8b1","#ffffd9"];
+            var colors = ["#081d58","#162876","#253494","#243E99","#23499E","#225ea8","#1F77B4","#1d91c0","#2FA3C2","#41b6c4","#50BBC1","#60C1BF","#7fcdbb","#91D4B9","#A3DBB7","#c7e9b4","#DAF0B2","#edf8b1","#F1F9BB","#F6FBC5","#ffffd9"];
             var rowLabel = this.model.get("row_labels");
             var colLabel = this.model.get("col_labels");
             var data = this.model.get("heatmap_data");
@@ -83,29 +83,29 @@ var HeatmapView = IPython.DOMWidgetView.extend({
                   .enter()
                   .append("rect")
                   .attr("x", function(d) { return hccol.indexOf(d.col) * cellSize; })
-        .attr("y", function(d) { return hcrow.indexOf(d.row) * cellSize; })
-        .attr("class", function(d){return "cell cell-border cr"+(d.row-1)+" cc"+(d.col-1);})
-        .attr("width", cellSize)
-        .attr("height", cellSize)
-        .style("fill", function(d) { return colorScale(d.value); })
-        /* .on("click", function(d) {
-               var rowtext=d3.select(".r"+(d.row-1));
-               if(rowtext.classed("text-selected")==false){
-                   rowtext.classed("text-selected",true);
-               }else{
-                   rowtext.classed("text-selected",false);
-               }
-        })*/
-        .on("mouseover", function(d){
-               //highlight text
-               d3.select(this).classed("cell-hover",true);
-               d3.selectAll(".rowLabel").classed("text-highlight",function(r,ri){ return ri==(d.row-1);});
-               d3.selectAll(".colLabel").classed("text-highlight",function(c,ci){ return ci==(d.col-1);});
+                  .attr("y", function(d) { return hcrow.indexOf(d.row) * cellSize; })
+                  .attr("class", function(d){return "cell cell-border cr"+(d.row-1)+" cc"+(d.col-1);})
+                  .attr("width", cellSize)
+                  .attr("height", cellSize)
+                  .style("fill", function(d) { return colorScale(d.value); })
+                  /* .on("click", function(d) {
+                       var rowtext=d3.select(".r"+(d.row-1));
+                       if(rowtext.classed("text-selected")==false){
+                         rowtext.classed("text-selected",true);
+                       }else{
+                         rowtext.classed("text-selected",false);
+                       }
+                  })*/
+                  .on("mouseover", function(d){
+                   //highlight text
+                     d3.select(this).classed("cell-hover",true);
+                     d3.selectAll(".rowLabel").classed("text-highlight",function(r,ri){ return ri==(d.row-1);});
+                     d3.selectAll(".colLabel").classed("text-highlight",function(c,ci){ return ci==(d.col-1);});
 
-               //Update the tooltip position and value
-               d3.select("#tooltip")
-                 .style("left", (d3.event.pageX+10) + "px")
-                 .style("top", (d3.event.pageY-10) + "px")
+                   //Update the tooltip position and value
+                     d3.select("#tooltip")
+                       .style("left", (d3.event.pageX+10) + "px")
+                       .style("top", (d3.event.pageY-10) + "px")
                  .select("#value")
                  .text(rowLabel[d.row-1]+","+colLabel[d.col-1]+"\ndata:"+d.value);
                //Show the tooltip
@@ -120,17 +120,18 @@ var HeatmapView = IPython.DOMWidgetView.extend({
         ;
 
   var legend = svg.selectAll(".legend")
-      .data([-10,-8,-6,-4,-2,0,2,4,6,8,10])
+      .data(d3.range(Math.floor(minval), Math.ceil(maxval)))
       .enter().append("g")
       .attr("class", "legend");
 
+  var color_factor = Math.ceil(colors.length/(maxval-minval));
   console.log(height+(cellSize*2));
   legend.append("rect")
     .attr("x", function(d, i) { return legendElementWidth * i; })
     .attr("y", height+(cellSize*2))
     .attr("width", legendElementWidth)
     .attr("height", cellSize)
-    .style("fill", function(d, i) { return colors[i]; });
+    .style("fill", function(d, i) { return colors[i*color_factor]; });
 
   legend.append("text")
     .attr("class", "mono")
@@ -324,5 +325,6 @@ var HeatmapView = IPython.DOMWidgetView.extend({
 
 
         }
+    });
+    WidgetManager.register_widget_view("HeatmapView", HeatmapView);
 });
-}});
