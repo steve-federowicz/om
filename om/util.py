@@ -6,6 +6,10 @@ from IPython.display import HTML
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
 
+from IPython.display import display
+from IPython.html import widgets as W
+from IPython.utils import traitlets as T
+
 import pandas as pd
 import numpy as np
 import cobra
@@ -163,6 +167,7 @@ def gene_heatmap(gene_list, analysis_type=GeneExpressionData, dataset_type='%',
                                                               strain1=ome.query(Strain).all(), strain2=None,
                                                               environments1=ome.query(InVivoEnvironment).all(), environments2=None):
 
+
     dataset_id_map = {}
     if analysis_type == GeneExpressionData:
         all_data = ome.query(analysis_type).filter(and_(analysis_type.gene_name.in_([g.name for g in gene_list]),
@@ -236,9 +241,121 @@ def gene_heatmap(gene_list, analysis_type=GeneExpressionData, dataset_type='%',
     hccol = [x+1 for x in hccol]
     hcrow = [x+1 for x in hcrow]
 
+
+    html_style = """
+     <style>
+      /* disable text selection */
+      svg *::selection {
+         background : transparent;
+      }
+
+      svg *::-moz-selection {
+         background:transparent;
+      }
+
+      svg *::-webkit-selection {
+         background:transparent;
+      }
+      rect.selection {
+        stroke          : #333;
+        stroke-dasharray: 4px;
+        stroke-opacity  : 0.5;
+        fill            : transparent;
+      }
+
+      rect.cell-border {
+        stroke: #eee;
+        stroke-width:0.3px;
+      }
+
+      rect.cell-selected {
+        stroke: rgb(51,102,153);
+        stroke-width:0.5px;
+      }
+
+      rect.cell-hover {
+        stroke: #F00;
+        stroke-width:0.3px;
+      }
+
+      text.mono {
+        font-size: 10pt;
+        font-family: Consolas, courier;
+        fill: #aaa;
+      }
+
+      text.text-selected {
+        fill: #000;
+      }
+
+      text.text-highlight {
+        fill: #c00;
+      }
+      text.text-hover {
+        fill: #00C;
+      }
+      #tooltip {
+        position: fixed;
+        width: 200px;
+        height: auto;
+        padding: 10px;
+        background-color: white;
+        -webkit-border-radius: 10px;
+        -moz-border-radius: 10px;
+        border-radius: 10px;
+        -webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        -moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        pointer-events: none;
+      }
+
+      #tooltip.hidden {
+        display: none;
+      }
+
+      #tooltip p {
+        margin: 0;
+        font-family: sans-serif;
+        font-size: 12px;
+        line-height: 20px;
+      }
+      </style>
+
+
+      <div id="tooltip" class="hidden">
+          <p><span id="value"></p>
+      </div>
+
+
+      <select id="order">
+      <option value="hclust">by cluster</option>
+      <option value="probecontrast">by probe name and contrast name</option>
+      <option value="probe">by probe name</option>
+      <option value="contrast">by contrast name</option>
+      <option value="custom">by log2 ratio</option>
+      </select>
+      </select>
+      <div id="chart" style='overflow:auto; width:960px; height:auto;'></div>
+      """
+
+
+
     #return hcrow,hccol,row_labels,col_labels,heatmap_data,dm
     return {'hcrow': hcrow, 'hccol': hccol, 'row_labels':row_labels,
                                             'col_labels':col_labels,
                                             'heatmap_data':heatmap_data,
                                             'maxval' : max([x['value'] for x in heatmap_data]),
-                                            'minval' : min([x['value'] for x in heatmap_data])}
+                                            'minval' : min([x['value'] for x in heatmap_data]),
+                                            'html_style': html_style}
+
+
+class HeatmapWidget(W.DOMWidget):
+    _view_name = T.Unicode('HeatmapView', sync=True)
+    heatmap_data = T.List(sync=True)
+    row_labels = T.List(sync=True)
+    col_labels = T.List(sync=True)
+    hcrow = T.List(sync=True)
+    hccol = T.List(sync=True)
+    minval = T.Float(sync=True)
+    maxval = T.Float(sync=True)
+    html_style = T.Unicode(sync=True)
