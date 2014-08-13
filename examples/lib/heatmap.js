@@ -1,4 +1,4 @@
-define(["widgets/js/widget", "d3"], function(WidgetManager, d3) {
+define([], function() {
   return {
 
 var HeatmapView = IPython.DOMWidgetView.extend({
