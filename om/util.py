@@ -41,6 +41,8 @@ def get_chip_peak_gene_expression(gene_name, factor, condition):
     else: return {'fold_change': -1*float(array_regulation[0].fold_change)}
 
 
+#def get_reaction_data(cobra_rxn_id, type=GeneExpressionData, **kwargs):
+
 
 
 def get_regulation_data(cobra_rxn_id, verbose=True, as_dataframe=True):
@@ -164,13 +166,17 @@ def write_genome_data_gff(genome_data_set_ids, function='avg'):
 
 
 def gene_heatmap(gene_list, analysis_type=GeneExpressionData, dataset_type='%',
-                                                              strain1=ome.query(Strain).all(), strain2=None,
-                                                              environments1=ome.query(InVivoEnvironment).all(), environments2=None):
+                                                              strain1=ome.query(Strain).all(),
+                                                              strain2=ome.query(Strain).all(),
+                                                              environments1=ome.query(InVivoEnvironment).all(),
+                                                              environments2=ome.query(InVivoEnvironment).all()):
 
 
     dataset_id_map = {}
     if analysis_type == GeneExpressionData:
         all_data = ome.query(analysis_type).filter(and_(analysis_type.gene_name.in_([g.name for g in gene_list]),
+                                                        analysis_type.strain_id.in_([x.id for x in strain1]),
+                                                        analysis_type.environment_id.in_([x.id for x in environments1]),
                                                         analysis_type.dataset_type.ilike(dataset_type))).all()
 
         datasets = set(['_'.join([x.dataset_type,x.strain,x.carbon_source,x.nitrogen_source,x.electron_acceptor]) for x in all_data])
@@ -179,7 +185,10 @@ def gene_heatmap(gene_list, analysis_type=GeneExpressionData, dataset_type='%',
         genes_data = pd.DataFrame(index=[g.name for g in gene_list], columns=datasets)
 
         for x in all_data:
-            genes_data.ix[x.gene_name]['_'.join([x.dataset_type,x.strain,x.carbon_source,x.nitrogen_source,x.electron_acceptor])] = np.log(x.value)
+            if dataset_type == 'array_experiment':
+                genes_data.ix[x.gene_name]['_'.join([x.dataset_type,x.strain,x.carbon_source,x.nitrogen_source,x.electron_acceptor])] = x.value
+            else:
+                genes_data.ix[x.gene_name]['_'.join([x.dataset_type,x.strain,x.carbon_source,x.nitrogen_source,x.electron_acceptor])] = np.log(x.value)
 
 
     elif analysis_type == DifferentialGeneExpressionData:
@@ -190,11 +199,11 @@ def gene_heatmap(gene_list, analysis_type=GeneExpressionData, dataset_type='%',
                                           analysis_type.environment_id_1.in_([x.id for x in environments1]),
                                           analysis_type.environment_id_2.in_([x.id for x in environments2]))).all()
 
-        datasets = set(['_'.join([x.strain1+'/'+x.strain2,x.carbon_source1+'/'+x.carbon_source2,x.nitrogen_source1,x.electron_acceptor1]) for x in all_data])
+        datasets = set([x.diff_name() for x in all_data])
         genes_data = pd.DataFrame(index=[g.name for g in gene_list], columns=datasets)
 
         for x in all_data:
-            genes_data.ix[x.gene_name]['_'.join([x.strain1+'/'+x.strain2,x.carbon_source1+'/'+x.carbon_source2,x.nitrogen_source1,x.electron_acceptor1])] = x.value
+            genes_data.ix[x.gene_name][x.diff_name()] = x.value
 
 
     elif analysis_type == ChIPPeakGeneExpression:
@@ -204,11 +213,11 @@ def gene_heatmap(gene_list, analysis_type=GeneExpressionData, dataset_type='%',
                                           analysis_type.strain2.in_([x.name for x in strain2]),
                                           analysis_type.environment_id.in_([x.id for x in environments2]))).all()
 
-        datasets = set(['_'.join([x.strain1,x.carbon_source,x.nitrogen_source,x.electron_acceptor]) for x in all_data])
+        datasets = set(['_'.join([x.target,x.strain1+'/'+x.strain2,x.carbon_source,x.nitrogen_source,x.electron_acceptor]) for x in all_data])
         genes_data = pd.DataFrame(index=[g.name for g in gene_list], columns=datasets)
 
         for x in all_data:
-            genes_data.ix[x.gene_name]['_'.join([x.strain1,x.carbon_source,x.nitrogen_source,x.electron_acceptor])] = x.value
+            genes_data.ix[x.gene_name]['_'.join([x.target,x.strain1+'/'+x.strain2,x.carbon_source,x.nitrogen_source,x.electron_acceptor])] = x.value
 
 
 
@@ -379,9 +388,9 @@ require(["widgets/js/widget", "d3"], function(WidgetManager, d3){
                  // - margin.top - margin.bottom,
                   //gridSize = Math.floor(width / 24),
                 legendElementWidth = cellSize*2.5,
-                colorBuckets = 17;
+                colorBuckets = 21;
                 //colors = ['#005824','#1A693B','#347B53','#4F8D6B','#699F83','#83B09B','#9EC2B3','#B8D4CB','#D2E6E3','#EDF8FB','#FFFFFF','#F1EEF6','#E6D3E1','#DBB9CD','#D19EB9','#C684A4','#BB6990','#B14F7C','#A63467','#9B1A53','#91003F'];
-            var colors = ["#081d58","#162876","#253494","#23499E","#225ea8","#1F77B4","#1d91c0","#2FA3C2","#41b6c4","#60C1BF","#7fcdbb","#A3DBB7","#c7e9b4","#DAF0B2","#edf8b1","#F6FBC5","#ffffd9"];
+            var colors = ["#081d58","#162876","#253494","#23499E","#2253A3",#225ea8","#1F77B4","#1d91c0","#2FA3C2","#38ACC3","#41b6c4","#60C1BF","#7fcdbb","#91D4B9",#A3DBB7","#c7e9b4","#DAF0B2","#E3F4B1",#edf8b1","#F6FBC5","#ffffd9"];
             var rowLabel = this.model.get("row_labels");
             var colLabel = this.model.get("col_labels");
             var data = this.model.get("heatmap_data");
@@ -488,7 +497,7 @@ require(["widgets/js/widget", "d3"], function(WidgetManager, d3){
       .enter().append("g")
       .attr("class", "legend");
 
-  var color_factor = Math.floor(colors.length/(maxval-minval));
+  var color_factor = Math.ceil(colors.length/(maxval-minval));
   console.log(height+(cellSize*2));
   legend.append("rect")
     .attr("x", function(d, i) { return legendElementWidth * i; })

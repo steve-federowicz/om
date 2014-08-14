@@ -33,6 +33,11 @@ class Genome(Base):
 
     __table_args__ = (UniqueConstraint('genbank_id'),{})
 
+
+    def __repr__(self):
+        return "Genome (#%d): %s, %s, %s" % \
+                (self.id, self.organism, self.genbank_id, self.ncbi_id)
+
     def __init__(self, genbank_id, ncbi_id, organism):
         self.genbank_id = genbank_id
         self.ncbi_id = ncbi_id
@@ -50,7 +55,7 @@ class GenomeRegion(Base):
     strand = Column(String(1), nullable=False)
     type = Column(String(20))
 
-    __table_args__ = (UniqueConstraint('leftpos','rightpos','strand', genome_id),{})
+    __table_args__ = (UniqueConstraint('leftpos','rightpos','strand', 'genome_id'),{})
 
     __mapper_args__ = {'polymorphic_identity': 'genome_region',
                        'polymorphic_on': type
