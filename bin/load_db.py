@@ -183,17 +183,17 @@ if __name__ == "__main__":
 
     #if not query_yes_no('This will drop the ENTIRE database and load from scratch, ' + \
     #                    'are you sure you want to do this?'): sys.exit()
-    """
+
     base.Base.metadata.drop_all()
-    base.omics_database.genome_data.drop()
+    #base.omics_database.genome_data.drop()
     base.Base.metadata.create_all()
 
-    load_raw_files(settings.data_directory+'/chip_experiment/fastq/crp', group_name='crp', normalize=False, raw=True)
-    load_raw_files(settings.data_directory+'/chip_experiment/fastq/yome', group_name='yome', normalize=False, raw=True)
+    load_raw_files(settings.data_directory+'/chip_experiment/fastq/crp', group_name='crp', normalize=False, raw=False)
+    load_raw_files(settings.data_directory+'/chip_experiment/fastq/yome', group_name='yome', normalize=False, raw=False)
 
-    load_raw_files(settings.data_directory+'/chip_experiment/gff', group_name='trn', normalize=False, raw=True)
+    load_raw_files(settings.data_directory+'/chip_experiment/gff', group_name='trn', normalize=False, raw=False)
 
-    load_raw_files(settings.data_directory+'/rnaseq_experiment/fastq', normalize=False, raw=True)
+    load_raw_files(settings.data_directory+'/rnaseq_experiment/fastq', normalize=False, raw=False)
     #load_raw_files(settings.data_directory+'/rnaseq_experiment/bam', normalize=True)
     #load_raw_files(settings.data_directory+'/chip_experiment/bam', normalize=False)
     load_raw_files(settings.data_directory+'/microarray/asv2', raw=False)
@@ -223,21 +223,21 @@ if __name__ == "__main__":
     data_loading.load_gem(session.query(ChIPPeakAnalysis).all(), base, data, genome)
     data_loading.load_nimblescan(session.query(ChIPPeakAnalysis).all(), base, data, genome)
 
-    data_loading.load_cuffnorm(base, data)
+    #data_loading.load_cuffnorm(base, data)
     data_loading.load_cuffdiff()
 
     data_loading.load_arraydata(settings.data_directory+'/microarray/formatted_asv2.txt', type='asv2')
     data_loading.load_arraydata(settings.data_directory+'/microarray/formatted_ec2.txt', type='ec2')
-    """
+
 
     #session = base.Session()
     #genome = session.query(base.Genome).first()
-    #data_loading.run_array_ttests(base, data, genome)
+    data_loading.run_array_ttests(base, data, genome)
 
     data_loading.make_genome_region_map()
 
     genome_data = base.omics_database.genome_data
 
-    genome_data.create_index([("data_set_id",ASCENDING), ("leftpos", ASCENDING)])
+    #genome_data.create_index([("data_set_id",ASCENDING), ("leftpos", ASCENDING)])
 
-    #session.close()
+    session.close()

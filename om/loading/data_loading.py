@@ -296,7 +296,7 @@ def create_name_based_experiment(session, exp_name, group_name, lab='palsson', i
     try: supplements = vals[7]
     except:
         try:
-            if vals[6][0:4] == 'anti':
+            if vals[6][0:4] == 'anti' or vals[6] in ['asv2','ec2']:
                 supplements = ''
             else:
                 supplements = vals[6]
