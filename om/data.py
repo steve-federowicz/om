@@ -513,18 +513,18 @@ from om.components import Gene,TU,TUGenes
 
 gene_expression_data = ome.query(
           Gene.id.label('gene_id'),
-          Strain.id.label('strain_id'),
-          InVivoEnvironment.id.label('environment_id'),
-          DataSet.type.label('dataset_type'),
-          func.max(DataSet.id).label('max_dataset_id'),
-          Gene.locus_id.label('locus_id'),
           Gene.name.label('gene_name'),
-          func.avg(GenomeData.value).label('value'),
-          func.stddev_pop(GenomeData.value).label('stddev'),
+          Gene.locus_id.label('locus_id'),
+          Strain.id.label('strain_id'),
           Strain.name.label('strain'),
+          InVivoEnvironment.id.label('environment_id'),
           InVivoEnvironment.carbon_source.label('carbon_source'),
           InVivoEnvironment.nitrogen_source.label('nitrogen_source'),
-          InVivoEnvironment.electron_acceptor.label('electron_acceptor')).\
+          InVivoEnvironment.electron_acceptor.label('electron_acceptor'),
+          DataSet.type.label('dataset_type'),
+          func.max(DataSet.id).label('max_dataset_id'),
+          func.avg(GenomeData.value).label('value'),
+          func.stddev_pop(GenomeData.value).label('stddev')).\
     join(GenomeData, DataSet, Strain, InVivoEnvironment).\
     group_by(Gene.id, Strain.id, DataSet.type, InVivoEnvironment.id,
              Gene.locus_id, Gene.name, Strain.name, InVivoEnvironment.carbon_source,
