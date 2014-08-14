@@ -17002,3 +17002,45 @@ Traceback (most recent call last):
   File "/usr/local/lib/python2.7/site-packages/tornado/concurrent.py", line 111, in result
     raise self._exception
 SSLError: [Errno 1] _ssl.c:510: error:1407609C:SSL routines:SSL23_GET_CLIENT_HELLO:http request
+2014-08-12 21:51:21.145 [NotebookApp] Using existing profile dir: u'/Users/sfederow/.ipython/profile_nbserver3'
+2014-08-12 21:51:21.195 [NotebookApp] Using MathJax from CDN: https://cdn.mathjax.org/mathjax/latest/MathJax.js
+2014-08-12 21:51:21.214 [NotebookApp] CRITICAL | WARNING: The notebook server is listening on all IP addresses and not using authentication. This is highly insecure and not recommended.
+2014-08-12 21:51:21.215 [NotebookApp] Serving notebooks from local directory: /Users/sfederow/ome/om/examples
+2014-08-12 21:51:21.215 [NotebookApp] 0 active kernels 
+2014-08-12 21:51:21.215 [NotebookApp] The IPython Notebook is running at: https://[all ip addresses on your system]:8888/
+2014-08-12 21:51:21.215 [NotebookApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+INFO:tornado.access:302 GET / (72.197.214.22) 1.38ms
+2014-08-12 21:51:55.360 [NotebookApp] WARNING | Notebook /Untitled0.ipynb is not trusted
+2014-08-12 21:51:55.938 [NotebookApp] Kernel started: be3c0ead-da9b-46f7-b69f-6e7d7125b14b
+2014-08-12 21:53:56.624 [NotebookApp] Saving notebook at /Untitled0.ipynb
+2014-08-12 22:12:18.008 [NotebookApp] Kernel shutdown: be3c0ead-da9b-46f7-b69f-6e7d7125b14b
+2014-08-12 22:12:20.506 [NotebookApp] Kernel started: 45d29a5b-67e0-412c-8678-e8e9e4fbadfe
+2014-08-12 22:14:14.141 [NotebookApp] Kernel restarted: 45d29a5b-67e0-412c-8678-e8e9e4fbadfe
+2014-08-12 22:14:21.185 [NotebookApp] Saving notebook at /Untitled0.ipynb
+2014-08-12 22:20:21.668 [NotebookApp] Saving notebook at /Untitled0.ipynb
+2014-08-12 22:22:21.191 [NotebookApp] Saving notebook at /Untitled0.ipynb
+2014-08-12 22:48:33.860 [NotebookApp] Kernel shutdown: 45d29a5b-67e0-412c-8678-e8e9e4fbadfe
+2014-08-12 22:48:37.364 [NotebookApp] Kernel started: a068704e-2c2a-4ff3-9cf9-37715f9e347e
+2014-08-12 22:50:37.409 [NotebookApp] Saving notebook at /Untitled0.ipynb
+2014-08-12 23:21:13.644 [NotebookApp] Creating new notebook in /
+2014-08-12 23:21:15.121 [NotebookApp] Kernel started: f68722b2-0a48-417b-9a81-bdd81670f78f
+2014-08-12 23:23:19.966 [NotebookApp] Saving notebook at /Untitled7.ipynb
+WARNING:tornado.access:404 GET /static/components/backbone/backbone-min.map (72.197.214.22) 0.64ms referer=https://brassica.ucsd.edu:8888/notebooks/Untitled7.ipynb
+WARNING:tornado.access:404 GET /static/components/underscore/underscore-min.map (72.197.214.22) 0.44ms referer=https://brassica.ucsd.edu:8888/notebooks/Untitled7.ipynb
+WARNING:tornado.access:404 GET /static/components/jquery/jquery.min.map (72.197.214.22) 0.57ms referer=https://brassica.ucsd.edu:8888/notebooks/Untitled7.ipynb
+WARNING:tornado.access:404 GET /static/components/jquery/jquery.min.map (72.197.214.22) 0.80ms referer=https://brassica.ucsd.edu:8888/notebooks/Untitled7.ipynb
+WARNING:tornado.access:404 GET /static/components/backbone/backbone-min.map (72.197.214.22) 0.50ms referer=https://brassica.ucsd.edu:8888/notebooks/Untitled7.ipynb
+WARNING:tornado.access:404 GET /static/components/underscore/underscore-min.map (72.197.214.22) 0.41ms referer=https://brassica.ucsd.edu:8888/notebooks/Untitled7.ipynb
+2014-08-12 23:25:21.726 [NotebookApp] Kernel restarted: f68722b2-0a48-417b-9a81-bdd81670f78f
+2014-08-12 23:25:22.376 [NotebookApp] Saving notebook at /Untitled7.ipynb
+2014-08-12 23:25:41.417 [NotebookApp] Saving notebook at /Untitled7.ipynb
+2014-08-12 23:35:24.963 [NotebookApp] Kernel shutdown: a068704e-2c2a-4ff3-9cf9-37715f9e347e
+2014-08-12 23:35:27.160 [NotebookApp] Kernel started: 39aabad3-6ee8-45c6-b807-ad0e3744ffa0
+2014-08-12 23:35:42.116 [NotebookApp] Kernel restarted: f68722b2-0a48-417b-9a81-bdd81670f78f
+2014-08-12 23:37:27.916 [NotebookApp] Saving notebook at /Untitled0.ipynb
+2014-08-12 23:37:42.095 [NotebookApp] Saving notebook at /Untitled7.ipynb
+INFO:tornado.access:302 GET / (72.197.214.22) 0.60ms
+2014-08-13 09:48:49.096 [NotebookApp] CRITICAL | received signal 15, stopping
+2014-08-13 09:48:49.096 [NotebookApp] Shutting down kernels
+2014-08-13 09:48:49.605 [NotebookApp] Kernel shutdown: 39aabad3-6ee8-45c6-b807-ad0e3744ffa0
+2014-08-13 09:48:50.109 [NotebookApp] Kernel shutdown: f68722b2-0a48-417b-9a81-bdd81670f78f

@@ -6,9 +6,10 @@ from os.path import split
 from math import log
 from itertools import combinations
 
-import os,subprocess,sys
+import os,subprocess,sys,math
 
-from numpy import zeros, roll, array
+from scipy.stats import ttest_ind
+from numpy import zeros, roll, array, mean, genfromtxt, zeros_like, arange
 from sqlalchemy import func, or_
 from IPython import embed
 
@@ -235,6 +236,32 @@ def load_samfile_to_db(sam_filepath, data_set_id, loading_cutoff=0, bulk_file_lo
         genome_data.create_index([("data_set_id", ASCENDING), ("leftpos", ASCENDING)])
 
     samfile.close()
+
+
+@timing
+def load_raw_gff_to_db(experiment):
+    filepath = settings.data_directory+'/chip_experiment/gff/'+experiment.name+'.gff'
+    assert filepath.endswith(".gff")
+    genome_data = base.omics_database.genome_data
+    entries = []
+    with open(filepath) as infile:
+        for i,line in enumerate(infile):
+            if line[0] == '#': continue
+            data = line.split("\t")
+            if float(data[5]) < .1: continue
+
+            entries.append({
+                "leftpos": int(data[3]),
+                "rightpos": int(data[4]),
+                "value": float(data[5]),
+                "strand": data[6],
+                "data_set_id": experiment.id})
+
+            if i%50000 == 0:
+                genome_data.insert(entries)
+                entries = []
+        genome_data.insert(entries)
+
 
 
 def calculate_normalization_factors(experiment_type, group_name):
@@ -517,6 +544,102 @@ def run_cuffdiff(base, data, genome, debug=False, overwrite=False):
 
 
 
+def calculate_differential_expression(base, data, experiment1, experiment2):
+    """calculate differential expression (fold change and q)"""
+    session = base.Session()
+    platform = experiment1.children[0].platform
+
+    genes = array([g[0] for g in session.query(func.distinct(data.GenomeData.genome_region_id)).\
+                                         filter(data.GenomeData.data_set_id.in_([x.id for x in experiment1.children+experiment2.children])).all()])
+
+    n_genes = len(genes)
+    # query data
+    data_vals1 = session.query(data.GenomeData.value).filter(data.GenomeData.data_set_id.in_([x.id for x in experiment1.children])).\
+                                                    order_by(data.GenomeData.genome_region_id).all()
+
+    data_vals2 = session.query(data.GenomeData.value).filter(data.GenomeData.data_set_id.in_([x.id for x in experiment2.children])).\
+                                                    order_by(data.GenomeData.genome_region_id).all()
+
+    if len(data_vals1) % n_genes != 0 or len(data_vals1) % n_genes != 0 or len(data_vals1) == 0 or len(data_vals2) == 0:
+        return array(0),array(0),array(0)
+
+    d1 = array(data_vals1).reshape(n_genes, -1)
+    d2 = array(data_vals2).reshape(n_genes, -1)
+
+    # filter the data, using the average of all values in the platform file as a cutoff
+    cutoff = 3.5 #mean(genfromtxt("%s/microarray/%s/IG_formatted_%s.tab" % (settings.data_directory, platform, platform))[:, 1:])
+    selection = (d1.max(axis=1) > cutoff) + (d2.max(axis=1) > cutoff)  # at least one of the samples must have one value over the cutoff
+    d1 = d1[selection, :]
+    d2 = d2[selection, :]
+    genes = genes[selection]
+    # calculate fold change (difference of means)
+    fold_change = (d1.mean(axis=1) - d2.mean(axis=1))
+    # calculate t-test statistics
+    t, p = ttest_ind(d1, d2, axis=1)  # independent t-test
+    # perform Benjamini-Hochberg correction (similar to p.adjust(p_values, method="BH") in R)
+    n_total = len(p)
+    ranks = zeros_like(p)
+    ranks[p.argsort()] = arange(n_total) + 1.0  # ranks must be floats starting with 1
+    q = p * n_total / ranks  # each entry is scaled by n_total / it's rank
+    q[q > 1] = 1.0  # maximum value is 1
+    if not q[0] >= 0:
+        from IPython import embed; embed()
+    session.close()
+    return genes, fold_change, q
+
+
+
+
+@timing
+def run_array_ttests(base, data, genome, debug=False, overwrite=False):
+    session = base.Session()
+    exp_objects = session.query(data.NormalizedExpression).\
+                                   join(data.AnalysisComposition, data.NormalizedExpression.id == data.AnalysisComposition.analysis_id).\
+                                   join(data.ArrayExperiment, data.ArrayExperiment.id == data.AnalysisComposition.data_set_id).all()
+
+    contrasts = find_single_factor_pairwise_contrasts(exp_objects)
+
+    for experiment1,experiment2 in contrasts:
+
+        x = experiment1.name.split('_')
+        y = experiment2.name.split('_')
+        exp_name = ''
+        if len(x) != len(y):
+            if len(x) > len(y):
+                exp_name = '_'.join(y)+'_supp/'+x[-1]
+            else:
+                exp_name = '_'.join(x)+'_supp/'+y[-1]
+        else:
+            for i in range(len(x)):
+                if x[i] == y[i]:
+                    exp_name += x[i]+'_'
+                else: exp_name += x[i]+'/'+y[i]+'_'
+            exp_name = exp_name.rstrip('_')
+
+        diff_exp = session.get_or_create(data.DifferentialExpression, name=exp_name, replicate=1, norm_method='gcrma',fdr=.05)
+
+        session.get_or_create(data.AnalysisComposition, analysis_id = diff_exp.id, data_set_id = experiment1.id)
+        session.get_or_create(data.AnalysisComposition, analysis_id = diff_exp.id, data_set_id = experiment2.id)
+
+
+        genes, fold_change, q = calculate_differential_expression(base, data, experiment1, experiment2)
+
+        if genes.all() == 0: return
+
+        for i,gene_id in enumerate(genes):
+
+            if math.isnan(fold_change[i]): value = 0.
+            else: value = fold_change[i]
+
+            if math.isnan(q[i]): pval = 0.
+            else: pval = q[i]
+
+            session.get_or_create(data.DiffExpData, data_set_id = diff_exp.id,\
+                                                    genome_region_id = gene_id,\
+                                                    value=value, pval=pval)
+
+
+
 @timing
 def run_gem(base, data, genome, debug=False, overwrite=False, with_control=False):
     default_parameters = {'mrc':20, 'smooth':3, 'nrf':'', 'outNP':''}
@@ -702,6 +825,8 @@ def load_gem(chip_peak_analyses, base, data, genome):
     gem_path = settings.data_directory+'/chip_peaks/gem/'
     session = base.Session()
     for chip_peak_analysis in chip_peak_analyses:
+        if chip_peak_analysis.children[0].protocol_type == 'ChIPchip': continue
+
         try: gem_peak_file = open(gem_path+chip_peak_analysis.name+'/out_GPS_events.narrowPeak','r')
         except: continue
         for line in gem_peak_file.readlines():
@@ -715,6 +840,31 @@ def load_gem(chip_peak_analyses, base, data, genome):
                                                 value=vals[6], eventpos=position, pval=vals[8])
 
     session.close()
+
+
+@timing
+def load_nimblescan(chip_peak_analyses, base, data, genome):
+    gff_path = settings.data_directory+'/chip_peaks/gff/'
+    session = base.Session()
+    for chip_peak_analysis in chip_peak_analyses:
+        if chip_peak_analysis.children[0].protocol_type == 'ChIPexo': continue
+
+        try: gff_peak_file = open(gff_path+chip_peak_analysis.name+'.gff','r')
+        except: continue
+
+        for line in gff_peak_file.readlines():
+            if line[0] == '#': continue
+            vals = line.split('\t')
+
+            position = (int(vals[3])+int(vals[4]))/2
+
+            peak_region = session.get_or_create(base.GenomeRegion, leftpos=vals[3], rightpos=vals[4], strand='+', genome_id=genome.id)
+
+            peak_data = session.get_or_create(data.ChIPPeakData, data_set_id=chip_peak_analysis.id, genome_region_id=peak_region.id,\
+                                                value=vals[5], eventpos=position, pval=0.)
+
+    session.close()
+
 
 @timing
 def load_arraydata(file_path, type='ec2'):
@@ -743,7 +893,7 @@ def load_arraydata(file_path, type='ec2'):
         for i,val in enumerate(vals[2:]):
 
             try: value = float(val)
-            except: continue
+            except: print val
             try:
                 session.get_or_create(data.GenomeData, data_set_id=exp_id_map[i],\
                                                        genome_region_id = gene.id,\
@@ -796,27 +946,29 @@ def make_genome_region_map():
 
     #genome_regions = session.query(data.GenomeRegion).all()
     duplicate_set = set()
+    tus = session.query(components.TU).all()
+
     for peak in session.query(data.ChIPPeakData).all():
         genome_region_1 = peak.genome_region
         print genome_region_1
-        for tu in session.query(components.TU).all():
+
+        if genome_region_1.id in duplicate_set: continue
+        else: duplicate_set.add(genome_region_1.id)
+
+        for tu in tus:
             genome_region_2 = tu.genome_region
 
-            if (genome_region_1.id, genome_region_2.id) in duplicate_set: continue
-            else: duplicate_set.add((genome_region_1.id, genome_region_2.id))
+            #midpoint_1 = (genome_region_1.leftpos + genome_region_1.rightpos)/2
+            #midpoint_2 = (genome_region_2.leftpos + genome_region_2.rightpos)/2
+            #midpoint_distance = midpoint_1 - midpoint_2
 
-            if genome_region_1.id == genome_region_2.id: continue
+            right_left_distance = abs(genome_region_1.rightpos - genome_region_2.leftpos)
+            left_right_distance = abs(genome_region_1.leftpos - genome_region_2.rightpos)
+            if right_left_distance < 1000 and genome_region_2.strand == '+':
+            	session.add(data.GenomeRegionMap(genome_region_1.id, genome_region_2.id, right_left_distance))
+            elif left_right_distance < 1000 and genome_region_2.strand == '-':
+                session.add(data.GenomeRegionMap(genome_region_1.id, genome_region_2.id, left_right_distance))
 
-            midpoint_1 = (genome_region_1.leftpos + genome_region_1.rightpos)/2
-            midpoint_2 = (genome_region_2.leftpos + genome_region_2.rightpos)/2
-            midpoint_distance = midpoint_1 - midpoint_2
-            right_left_distance = genome_region_1.rightpos - genome_region_2.leftpos
-            left_right_distance = genome_region_1.leftpos - genome_region_2.rightpos
-            if abs(right_left_distance) < 1000 and genome_region_2.strand == '+':
-            	session.add(data.GenomeRegionMap(genome_region_1.id, genome_region_2.id, midpoint_distance))
-            elif abs(left_right_distance) < 1000 and genome_region_2.strand == '-':
-                session.add(data.GenomeRegionMap(genome_region_1.id, genome_region_2.id, midpoint_distance))
-
-        session.flush()
+    session.flush()
     session.commit()
     session.close()
