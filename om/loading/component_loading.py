@@ -213,7 +213,7 @@ def get_or_create_metacyc_ligand(session, base, components, ligand_entry):
     markup = re.compile("<.+?>")
     name = markup.sub("", name)
 
-    return session.get_or_create(components.SmallMolecule, name=vals['UNIQUE-ID'][0],\
+    return session.get_or_create(components.Metabolite, name=vals['UNIQUE-ID'][0],\
                                  long_name=name, smiles=vals['SMILES'][0])
 
 
@@ -224,25 +224,33 @@ def get_or_create_metacyc_protein_complex(session, base, components, protein_com
     protein_complex = session.get_or_create(components.Complex, name=vals['UNIQUE-ID'][0], long_name=vals['COMMON-NAME'][0])
 
     for component in vals['COMPONENTS']:
-        try: component_vals = scrub_metacyc_entry(metacyc_proteins[component])
-        except:
-            try: component_vals = scrub_metacyc_entry(metacyc_ligands[component])
-            except: continue
+
+        component_vals = None
+        complex_component = None
+
+        if component in metacyc_proteins:
+            component_vals = scrub_metacyc_entry(metacyc_proteins[component])
+
+        elif component in metacyc_ligands:
+            component_vals = scrub_metacyc_entry(metacyc_ligands[component])
+
+        elif component in metacyc_protein_cplxs:
+            component_vals = scrub_metacyc_entry(metacyc_protein_cplxs[component])
 
         if component_vals is None: continue
 
         if 'Protein-Complexes' in component_vals['TYPES']:
             complex_component = get_or_create_metacyc_protein_complex(session, base, components, metacyc_proteins[component])
 
+        elif 'Protein-Small-Molecule-Complexes' in component_vals['TYPES']:
+            complex_component = get_or_create_metacyc_protein_complex(session, base, components, metacyc_protein_cplxs[component])
+
         elif 'Polypeptides' in component_vals['TYPES']:
             complex_component = get_protein_with_metacyc(session, base, components, metacyc_proteins[component])
 
-        else:
-            try:
-                complex_component = get_or_create_metacyc_ligand(metacyc_ligands[component])
-            except:
-                #TODO: Add in the rest of complex type additions here
-                continue
+        elif 'Compounds' in component_vals['TYPES']:
+            complex_component = get_or_create_metacyc_ligand(session, base, components, metacyc_ligands[component])
+
         if complex_component is None: continue
 
         session.get_or_create(components.ComplexComposition, complex_id=protein_complex.id,\
@@ -322,7 +330,14 @@ def load_genbank(genbank_file, base, components):
         if feature.type == 'CDS' or feature.type == 'tRNA' or \
            feature.type == 'ncRNA' or feature.type == 'rRNA':
 
-            ome_gene['name'] = feature.qualifiers['gene'][0]
+            try: locus_tag = feature.qualifiers['locus_tag'][0]  #if no locus_tag
+            except: continue                                     #continue
+
+            try: ome_gene['name'] = feature.qualifiers['gene'][0]  #if no name
+            except: ome_gene['name'] = locus_tag                   #name = locus_tag
+
+            ome_gene['locus_id'] = locus_tag
+
             ome_gene['leftpos'] = feature.location.start
             ome_gene['rightpos'] = feature.location.end
             ome_gene['genome_id'] = genome.id
@@ -330,8 +345,6 @@ def load_genbank(genbank_file, base, components):
             if feature.strand == 1: ome_gene['strand'] = '+'
             elif feature.strand == -1: ome_gene['strand'] = '-'
 
-
-            ome_gene['locus_id'] = feature.qualifiers['locus_tag'][0]
 
 
             try: ome_gene['info'] = feature.qualifiers['product'][0]  #if pseudogene
@@ -341,13 +354,16 @@ def load_genbank(genbank_file, base, components):
                 ome_gene['info'] = ome_gene['info'] + ',' + feature.qualifiers['function'][0]
                 ome_protein['long_name'] = feature.qualifiers['function'][0]
 
+            if len(ome_gene['name']) > 15: continue  #some weird genbank names are too long and misformed
+
             gene = components.Gene(**ome_gene)
             session.add(gene)
             session.flush()
 
             if 'product' in feature.qualifiers and feature.type == 'CDS':
 
-                ome_protein['name'] = feature.qualifiers['protein_id'][0]
+                try: ome_protein['name'] = feature.qualifiers['protein_id'][0]  #if no protein_id
+                except: continue                                                #don't make a protein entry
                 ome_protein['gene_id'] = gene.id
 
                 session.add(components.Protein(**ome_protein))
@@ -371,10 +387,6 @@ def load_motifs(base, components):
 @timing
 def load_metacyc_proteins(base, components, genome):
     session = base.Session()
-    ##First load annotation file containing merger of metacyc and NCBI
-    metacyc_ID = session.get_or_create(base.DataSource, name="metacyc").id
-
-
 
     for unique_id,entry in metacyc_proteins.iteritems():
 
@@ -387,17 +399,18 @@ def load_metacyc_proteins(base, components, genome):
         elif 'Polypeptides' in vals['TYPES']:
             update_protein_with_metacyc(session, base, components, entry)
 
+@timing
+def load_metacyc_protein_cplxs(base, components, genome):
+    session = base.Session()
 
     for unique_id,entry in metacyc_protein_cplxs.iteritems():
 
         vals = scrub_metacyc_entry(entry)
         if vals is None: continue
 
-        if 'Protein-Complexes' in vals['TYPES'] or 'Protein-Small-Molecule-Complexes' in vals['TYPES']:
+        if 'Protein-Complexes' or 'Protein-Small-Molecule-Complexes' in vals['TYPES']:
             get_or_create_metacyc_protein_complex(session, base, components, entry)
 
-        elif 'Polypeptides' in vals['TYPES']:
-            get_or_create_metacyc_protein(session, base, components, entry)
 
 
 @timing
@@ -521,8 +534,7 @@ def load_metacyc_promoters(ome, metacyc_ID=None):
 
 @timing
 def load_kegg_pathways(base, components):
-    # this table should probably get re-designed properly with a pathways table
-    # and a separate pathway genes secondary table - TODO
+
     session = base.Session()
     kegg_pathways = open(settings.data_directory+'/annotation/KEGG/ecoli_KEGG_pathways.txt','r')
     kegg_dataset = session.get_or_create(base.DataSource, name="kegg")

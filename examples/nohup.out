@@ -27875,3 +27875,25 @@ Traceback (most recent call last):
   File "/usr/local/lib/python2.7/site-packages/tornado/concurrent.py", line 111, in result
     raise self._exception
 SSLError: [Errno 1] _ssl.c:510: error:1408E0F4:SSL routines:SSL3_GET_MESSAGE:unexpected message
+WARNING:tornado.general:SSL Error on 9 ('222.223.246.43', 35617): [Errno 1] _ssl.c:510: error:1407609C:SSL routines:SSL23_GET_CLIENT_HELLO:http request
+ERROR:tornado.general:Uncaught exception
+Traceback (most recent call last):
+  File "/usr/local/lib/python2.7/site-packages/tornado/http1connection.py", line 635, in _server_request_loop
+    ret = yield conn.read_response(request_delegate)
+  File "/usr/local/lib/python2.7/site-packages/tornado/gen.py", line 617, in run
+    value = future.result()
+  File "/usr/local/lib/python2.7/site-packages/tornado/concurrent.py", line 109, in result
+    raise_exc_info(self._exc_info)
+  File "/usr/local/lib/python2.7/site-packages/tornado/gen.py", line 620, in run
+    yielded = self.gen.throw(*sys.exc_info())
+  File "/usr/local/lib/python2.7/site-packages/tornado/http1connection.py", line 163, in _read_message
+    io_loop=self.stream.io_loop)
+  File "/usr/local/lib/python2.7/site-packages/tornado/gen.py", line 617, in run
+    value = future.result()
+  File "/usr/local/lib/python2.7/site-packages/tornado/concurrent.py", line 111, in result
+    raise self._exception
+SSLError: [Errno 1] _ssl.c:510: error:1407609C:SSL routines:SSL23_GET_CLIENT_HELLO:http request
+2014-08-14 23:07:54.389 [NotebookApp] CRITICAL | received signal 15, stopping
+2014-08-14 23:07:54.404 [NotebookApp] Shutting down kernels
+2014-08-14 23:07:55.140 [NotebookApp] Kernel shutdown: a4281012-2b43-4640-bbec-3e3822456d9c
+2014-08-14 23:07:55.870 [NotebookApp] Kernel shutdown: 8f5cf681-8bd8-4015-a68e-ab629335e2a7

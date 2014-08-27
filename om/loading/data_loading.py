@@ -265,7 +265,7 @@ def load_raw_gff_to_db(experiment):
 
 
 def calculate_normalization_factors(experiment_type, group_name):
-    if experiment_type not in ['rnaseq_experiment','ChIP_experiment']: return
+    if experiment_type not in ['rnaseq_experiment','chip_experiment']: return
     if group_name == 'default':
         directory_path = os.path.join(settings.data_directory, experiment_type, 'bam')
     else:
@@ -616,6 +616,7 @@ def run_array_ttests(base, data, genome, debug=False, overwrite=False):
                 else: exp_name += x[i]+'/'+y[i]+'_'
             exp_name = exp_name.rstrip('_')
 
+        print experiment1,experiment2
         diff_exp = session.get_or_create(data.DifferentialExpression, name=exp_name, replicate=1, norm_method='gcrma',fdr=.05)
 
         session.get_or_create(data.AnalysisComposition, analysis_id = diff_exp.id, data_set_id = experiment1.id)
@@ -624,7 +625,7 @@ def run_array_ttests(base, data, genome, debug=False, overwrite=False):
 
         genes, fold_change, q = calculate_differential_expression(base, data, experiment1, experiment2)
 
-        if genes.all() == 0: return
+        if genes.all() == 0: continue
 
         for i,gene_id in enumerate(genes):
 
@@ -937,7 +938,7 @@ def query_yes_no(question, default="yes"):
 
 
 @timing
-def make_genome_region_map():
+def make_genome_region_map(base, data, genome):
     session = base.Session()
 
     data.GenomeRegionMap.__table__.drop()
@@ -952,15 +953,12 @@ def make_genome_region_map():
         genome_region_1 = peak.genome_region
         print genome_region_1
 
-        if genome_region_1.id in duplicate_set: continue
-        else: duplicate_set.add(genome_region_1.id)
-
         for tu in tus:
             genome_region_2 = tu.genome_region
 
-            #midpoint_1 = (genome_region_1.leftpos + genome_region_1.rightpos)/2
-            #midpoint_2 = (genome_region_2.leftpos + genome_region_2.rightpos)/2
-            #midpoint_distance = midpoint_1 - midpoint_2
+            if (genome_region_1.id, genome_region_2.id) in duplicate_set: continue
+            else: duplicate_set.add((genome_region_1.id, genome_region_2.id))
+
 
             right_left_distance = abs(genome_region_1.rightpos - genome_region_2.leftpos)
             left_right_distance = abs(genome_region_1.leftpos - genome_region_2.rightpos)
