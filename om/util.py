@@ -41,8 +41,25 @@ def get_chip_peak_gene_expression(gene_name, factor, condition):
     else: return {'fold_change': -1*float(array_regulation[0].fold_change)}
 
 
-#def get_reaction_data(cobra_rxn_id, type=GeneExpressionData, **kwargs):
+def get_reaction_data(cobra_rxn_id, dataset_name):
+    try:
+        cobra_rxn_id.id
+        rxn = cobra_rxn_id
+    except:
+        try: rxn = model.reactions.get_by_id(cobra_rxn_id)
+        except: return 0.1
 
+    dged = DifferentialGeneExpressionData
+
+    gpr_genes = [ome.query(Gene.name).filter_by(locus_id=gene.id).scalar() for gene in rxn.genes]
+
+    dataset_id = ome.query(DataSet.id).filter(DataSet.name == dataset_name).one()
+
+    value = ome.query(func.max(dged.value)).filter(and_(dged.gene_name.in_(gpr_genes),
+                                                       dged.diff_exp_id == dataset_id)).all()[0][0]
+
+    if not value: return 0.1
+    else: return value
 
 
 def get_regulation_data(cobra_rxn_id, verbose=True, as_dataframe=True):
@@ -119,17 +136,13 @@ def get_indirect_regulation_frame(rxn, factors=['ArcA','Fnr'], condition=None):
 def add_gene_group(name, genes):
     session = Session()
 
-    if ome.query(GeneGroup).filter(GeneGroup.name == name).all(): return
-
-    gene_group = GeneGroup(name)
-    session.add(gene_group)
-    session.commit()
+    gene_group = session.get_or_create(GeneGroup, name = name)
 
     for gene in genes:
         if isinstance(gene, basestring):
             gene = session.query(Gene).filter(or_(Gene.name == gene, Gene.locus_id == gene)).first()
 
-        if gene: session.get_or_create(GeneGrouping, gene_group_id=gene_group.id, gene_id=gene.id)
+        if gene: session.get_or_create(GeneGrouping, group_id=gene_group.id, gene_id=gene.id)
 
     session.flush()
     session.commit()
