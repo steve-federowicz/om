@@ -453,13 +453,14 @@ class DiffExpData(GenomeData):
     __tablename__ = 'diff_exp_data'
 
     data_set_id = Column(Integer, primary_key=True)
-    diff_exp_analysis = relationship('DifferentialExpression')
     genome_region_id = Column(Integer, primary_key=True)
+
+    diff_exp_analysis = relationship('DifferentialExpression')
 
     pval = Column(Float)
 
     __table_args__ = (ForeignKeyConstraint(['data_set_id','genome_region_id'],\
-                                           ['genome_data.data_set_id', 'genome_data.genome_region_id']),\
+                                           ['genome_data.data_set_id', 'genome_data.genome_region_id'], ondelete='CASCADE'),\
                       UniqueConstraint('data_set_id','genome_region_id'),{})
 
     __mapper_args__ = { 'polymorphic_identity': 'diff_exp_data' }
@@ -476,8 +477,9 @@ class DiffExpData(GenomeData):
 class ChIPPeakData(GenomeData):
     __tablename__ = 'chip_peak_data'
 
-    data_set_id = Column(Integer, ForeignKey('data_set.id', ondelete="CASCADE"), primary_key=True)
+    data_set_id = Column(Integer, primary_key=True)
     genome_region_id = Column(Integer, primary_key=True)
+
     peak_analysis = relationship('Analysis')
     eventpos = Column(Integer)
     pval = Column(Float)
@@ -491,7 +493,7 @@ class ChIPPeakData(GenomeData):
         return func.ceil(ChIPPeakData.eventpos/400) * 400
 
     __table_args__ = (ForeignKeyConstraint(['data_set_id','genome_region_id'],\
-                                           ['genome_data.data_set_id', 'genome_data.genome_region_id']),\
+                                           ['genome_data.data_set_id', 'genome_data.genome_region_id'], ondelete='CASCADE'),\
                       UniqueConstraint('data_set_id','genome_region_id'),{})
 
     __mapper_args__ = { 'polymorphic_identity': 'chip_peak_data' }

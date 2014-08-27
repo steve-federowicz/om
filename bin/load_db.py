@@ -76,7 +76,6 @@ def load_raw_files(directory_path, group_name='default', normalize=True, overwri
         if not raw: continue
 
         if experiment.type == 'chip_experiment':
-            print experiment.name,'aaa'
             norm_factor = normalization_factors[experiment.name]
             if experiment.protocol_type == 'ChIPExo':
                 data_loading.load_raw_experiment_data(experiment, loading_cutoff=5., flip=False, five_prime=True, norm_factor=norm_factor)
@@ -184,60 +183,66 @@ if __name__ == "__main__":
     #if not query_yes_no('This will drop the ENTIRE database and load from scratch, ' + \
     #                    'are you sure you want to do this?'): sys.exit()
 
-    #base.Base.metadata.drop_all()
-    #base.omics_database.genome_data.drop()
-    #base.Base.metadata.create_all()
+    base.Base.metadata.drop_all()
+    base.omics_database.genome_data.drop()
+    base.Base.metadata.create_all()
 
-    #load_raw_files(settings.data_directory+'/chip_experiment/fastq/crp', group_name='crp', normalize=True, raw=True)
-    #load_raw_files(settings.data_directory+'/chip_experiment/fastq/yome', group_name='yome', normalize=True, raw=True)
-
-    #load_raw_files(settings.data_directory+'/chip_experiment/gff', group_name='trn', normalize=False, raw=True)
-
-    #load_raw_files(settings.data_directory+'/rnaseq_experiment/fastq', normalize=True, raw=True)
-    #load_raw_files(settings.data_directory+'/rnaseq_experiment/bam', normalize=True)
-    #load_raw_files(settings.data_directory+'/chip_experiment/bam', normalize=False)
-    #load_raw_files(settings.data_directory+'/microarray/asv2', raw=False)
-    #load_raw_files(settings.data_directory+'/microarray/ec2', raw=False)
-
-
-    experiment_sets = query_experiment_sets()
-    load_experiment_sets(experiment_sets)
-    """
     component_loading.load_genomes(base, components)
-    session = base.Session()
-    genome = session.query(base.Genome).first()
-
-    component_loading.load_metacyc_proteins(base, components, genome)
-    component_loading.load_metacyc_bindsites(base, components, genome)
-    component_loading.load_metacyc_transcription_units(base, components, genome)
-
-
-    component_loading.write_genome_annotation_gff(base, components, genome)
-    """
-    #data_loading.run_cuffquant(base, data, genome, debug=False)
-    #data_loading.run_cuffnorm(base, data, genome, debug=False, overwrite=True)
-    #data_loading.run_cuffdiff(base, data, genome, debug=False, overwrite=True)
-    #data_loading.run_gem(base, data, genome, debug=True)
 
     session = base.Session()
-    genome = session.query(base.Genome).first()
-    #data_loading.load_gem(session.query(ChIPPeakAnalysis).all(), base, data, genome)
-    data_loading.load_nimblescan(session.query(ChIPPeakAnalysis).all(), base, data, genome)
 
-    #data_loading.load_cuffnorm(base, data)
-    #data_loading.load_cuffdiff()
+    data_genomes = session.query(base.Genome).filter(base.Genome.ncbi_id.in_(['NC_000913.2'])).all()
 
-    #data_loading.load_arraydata(settings.data_directory+'/microarray/formatted_asv2.txt', type='asv2')
-    #data_loading.load_arraydata(settings.data_directory+'/microarray/formatted_ec2.txt', type='ec2')
+    raw_flag = True
+    normalize_flag = True
+
+    for genome in data_genomes:
+
+        load_raw_files(settings.data_directory+'/chip_experiment/fastq/crp', group_name='crp', normalize=normalize_flag, raw=raw_flag)
+        load_raw_files(settings.data_directory+'/chip_experiment/fastq/yome', group_name='yome', normalize=normalize_flag, raw=raw_flag)
+
+        load_raw_files(settings.data_directory+'/chip_experiment/gff', group_name='trn', normalize=False, raw=raw_flag)
+
+        load_raw_files(settings.data_directory+'/rnaseq_experiment/fastq', normalize=normalize_flag, raw=raw_flag)
+        #load_raw_files(settings.data_directory+'/rnaseq_experiment/bam', normalize=True)
+        #load_raw_files(settings.data_directory+'/chip_experiment/bam', normalize=False)
+        load_raw_files(settings.data_directory+'/microarray/asv2', raw=False)
+        load_raw_files(settings.data_directory+'/microarray/ec2', raw=False)
 
 
+        experiment_sets = query_experiment_sets()
+        load_experiment_sets(experiment_sets)
 
-    #data_loading.run_array_ttests(base, data, genome)
 
-    data_loading.make_genome_region_map()
+        component_loading.load_metacyc_proteins(base, components, genome)
+        component_loading.load_metacyc_bindsites(base, components, genome)
+        component_loading.load_metacyc_transcription_units(base, components, genome)
 
-    #genome_data = base.omics_database.genome_data
 
-    #genome_data.create_index([("data_set_id",ASCENDING), ("leftpos", ASCENDING)])
+        component_loading.write_genome_annotation_gff(base, components, genome)
+
+        #data_loading.run_cuffquant(base, data, genome, debug=False)
+        #data_loading.run_cuffnorm(base, data, genome, debug=False, overwrite=True)
+        #data_loading.run_cuffdiff(base, data, genome, debug=False, overwrite=True)
+        #data_loading.run_gem(base, data, genome, debug=True)
+
+
+        data_loading.load_gem(session.query(ChIPPeakAnalysis).all(), base, data, genome)
+        data_loading.load_nimblescan(session.query(ChIPPeakAnalysis).all(), base, data, genome)
+
+        data_loading.load_cuffnorm(base, data)
+        data_loading.load_cuffdiff()
+
+        data_loading.load_arraydata(settings.data_directory+'/microarray/formatted_asv2.txt', type='asv2')
+        data_loading.load_arraydata(settings.data_directory+'/microarray/formatted_ec2.txt', type='ec2')
+
+        data_loading.run_array_ttests(base, data, genome)
+
+        data_loading.make_genome_region_map(base, data, genome)
+
+
+    genome_data = base.omics_database.genome_data
+
+    genome_data.create_index([("data_set_id",ASCENDING), ("leftpos", ASCENDING)])
 
     session.close()
