@@ -327,8 +327,7 @@ def load_genbank(genbank_file, base, components):
         ome_protein = {'long_name':''}
 
 
-        if feature.type == 'CDS' or feature.type == 'tRNA' or \
-           feature.type == 'ncRNA' or feature.type == 'rRNA':
+        if feature.type == 'CDS':
 
             try: locus_tag = feature.qualifiers['locus_tag'][0]  #if no locus_tag
             except: continue                                     #continue
@@ -582,19 +581,6 @@ def load_regulatory_network(ome):
     regulatory_network.close()
 
 
-@timing
-def load_genome(genome_filepath=None):
-    """use the psql \\copy command to load the genome"""
-    if genome_filepath is None:
-        genome_filepath = settings.data_directory + "/data/genome/Escherichia_coli_MG1655_genome.tab"
-    # using \copy is 6.5x faster
-    genome_filepath = os.path.abspath(genome_filepath).replace("\\", "\\\\")
-    with open("tmp_command.sql", "w") as outfile:
-        outfile.write("set search_path to %s;" % (settings.schema))
-        outfile.write(r"\copy genome from '%s'" % (genome_filepath))
-    os.system("%s < tmp_command.sql > psql.log 2>&1" % (settings.psql_full))
-    os.remove("tmp_command.sql")
-
 
 @timing
 def write_genome_annotation_gff(base, components, genome):
@@ -604,7 +590,7 @@ def write_genome_annotation_gff(base, components, genome):
 
     with open(settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff', 'wb') as gff_file:
 
-        for gene in session.query(components.Gene).all():
+        for gene in session.query(components.Gene).filter(components.Gene.genome_id == genome.id).all():
 
             info_string = 'gene_id "%s"; transcript_id "%s"; gene_name "%s";' % (gene.locus_id, gene.locus_id, gene.name)
 
