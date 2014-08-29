@@ -398,7 +398,7 @@ def run_bowtie2(experiment, fastq_paths, overwrite=False, debug=False):
 
 
 @timing
-def run_cuffquant(base, data, genome, overwrite=False, debug=False):
+def run_cuffquant(base, data, genome, cxb_group_name=None, overwrite=False, debug=False):
 
     gff_file = settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff'
     cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb'

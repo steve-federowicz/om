@@ -162,6 +162,9 @@ class DataSet(Base):
     data_source_id = Column(Integer, ForeignKey('data_source.id', ondelete='CASCADE'))
     data_source = relationship("DataSource")
 
+    group_name = Column(String(100))
+
+
     __mapper_args__ = {'polymorphic_identity': 'data_set',
                        'polymorphic_on': type}
 
@@ -183,7 +186,7 @@ class DataSet(Base):
     def __repr__json__(self):
         return json.dumps(self.__repr__dict__())
 
-    def __init__(self, name, replicate=1, strain_id=None, environment_id=None, data_source_id=None):
+    def __init__(self, name, replicate=1, strain_id=None, environment_id=None, data_source_id=None, group_name=None):
 
         session = Session()
         if strain_id is None:
@@ -201,6 +204,7 @@ class DataSet(Base):
         self.strain_id = strain_id
         self.environment_id = environment_id
         self.data_source_id = data_source_id
+        self.group_name = group_name
 
 
 class ArrayExperiment(DataSet):
@@ -208,7 +212,6 @@ class ArrayExperiment(DataSet):
 
     id = Column(Integer, ForeignKey('data_set.id', ondelete='CASCADE'), primary_key=True)
     platform = Column(String(10))
-    group_name = Column(String(100))
 
     #terrrible hack right here
     #file_name = Column(String(100))
@@ -216,10 +219,9 @@ class ArrayExperiment(DataSet):
     __mapper_args__ = { 'polymorphic_identity': 'array_experiment' }
 
     def __init__(self, name, replicate, strain_id, environment_id, data_source_id,\
-                       platform, group_name):
-        super(ArrayExperiment, self).__init__(name, replicate, strain_id, environment_id, data_source_id)
+                       platform, group_name=None):
+        super(ArrayExperiment, self).__init__(name, replicate, strain_id, environment_id, data_source_id, group_name)
         self.platform = platform
-        self.group_name = group_name
 
     def __repr__(self):
         return "Array Experiment (#%d, %s):  %s  %d" % \
@@ -241,7 +243,6 @@ class RNASeqExperiment(DataSet):
 
     sequencing_type = Column(String(20))
     machine_id = Column(String(20))
-    group_name = Column(String(100))
 
     normalization_method = Column(String(100))
     normalization_factor = Column(Float)
@@ -266,12 +267,11 @@ class RNASeqExperiment(DataSet):
         return data_set
 
     def __init__(self, name, replicate, strain_id, environment_id, data_source_id,\
-                       sequencing_type, machine_id, group_name, normalization_method=None,\
+                       sequencing_type, machine_id, group_name=None, normalization_method=None,\
                        normalization_factor=None):
-        super(RNASeqExperiment, self).__init__(name, replicate, strain_id, environment_id, data_source_id)
+        super(RNASeqExperiment, self).__init__(name, replicate, strain_id, environment_id, data_source_id, group_name)
         self.sequencing_type = sequencing_type
         self.machine_id = machine_id
-        self.group_name = group_name
 
         self.normalization_method = normalization_method
         self.normalization_factor = normalization_factor
@@ -285,7 +285,6 @@ class ChIPExperiment(DataSet):
     antibody = Column(String(20))
     protocol_type = Column(String(20))
     target = Column(String(20))
-    group_name = Column(String(100))
 
     normalization_method = Column(String(100))
     normalization_factor = Column(Float)
@@ -312,14 +311,13 @@ class ChIPExperiment(DataSet):
         return dataset
 
     def __init__(self, name, replicate, strain_id, environment_id, data_source_id,\
-                       antibody, protocol_type, target, group_name, normalization_method=None,\
+                       antibody, protocol_type, target, group_name=None, normalization_method=None,\
                        normalization_factor=None):
 
-        super(ChIPExperiment, self).__init__(name, replicate, strain_id, environment_id, data_source_id)
+        super(ChIPExperiment, self).__init__(name, replicate, strain_id, environment_id, data_source_id, group_name)
         self.antibody = antibody
         self.protocol_type = protocol_type
         self.target = target
-        self.group_name = group_name
         self.normalization_method = normalization_method
         self.normalization_factor = normalization_factor
 

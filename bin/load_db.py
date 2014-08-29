@@ -193,8 +193,8 @@ if __name__ == "__main__":
 
     data_genomes = session.query(base.Genome).filter(base.Genome.ncbi_id.in_(['NC_000913.2'])).all()
 
-    raw_flag = True
-    normalize_flag = True
+    raw_flag = False
+    normalize_flag = False
 
     for genome in data_genomes:
 
@@ -217,21 +217,23 @@ if __name__ == "__main__":
         load_experiment_sets(experiment_sets)
 
 
-        component_loading.load_metacyc_proteins(base, components, genome)
-        component_loading.load_metacyc_bindsites(base, components, genome)
-        component_loading.load_metacyc_transcription_units(base, components, genome)
+        #component_loading.load_metacyc_proteins(base, components, genome)
+        #component_loading.load_metacyc_bindsites(base, components, genome)
+        #component_loading.load_metacyc_transcription_units(base, components, genome)
 
 
-
-
-        #data_loading.run_cuffquant(base, data, genome, debug=False)
+        data_loading.run_cuffquant(base, data, genome, bam_group_name='crp', group_name='crp_rRNA_tRNA_ncRNA',  debug=False)
+        data_loading.run_cuffquant(base, data, genome, bam_group_name='crp', group_name='crp_ali_gtf', debug=False)
+        data_loading.run_cuffquant(base, data, genome, bam_group_name='crp', group_name='crp_tRNA_ncRNA', debug=False)
+        data_loading.run_cuffquant(base, data, genome, bam_group_name='crp', group_name='crp', debug=False)
+        data_loading.run_cuffquant(base, data, genome, group_name='yome', debug=False)
         #data_loading.run_cuffnorm(base, data, genome, group_name='crp', debug=False, overwrite=True)
         #data_loading.run_cuffnorm(base, data, genome, group_name='yome', debug=False, overwrite=True)
         #data_loading.run_cuffdiff(base, data, genome, group_name='crp', debug=False, overwrite=True)
         #data_loading.run_cuffdiff(base, data, genome, group_name='yome', debug=False, overwrite=True)
         #data_loading.run_gem(base, data, genome, debug=True)
 
-
+        """
         data_loading.load_gem(session.query(ChIPPeakAnalysis).all(), base, data, genome)
         data_loading.load_nimblescan(session.query(ChIPPeakAnalysis).all(), base, data, genome)
 
@@ -246,7 +248,7 @@ if __name__ == "__main__":
         data_loading.run_array_ttests(base, data, genome)
 
         data_loading.make_genome_region_map(base, data, genome)
-
+        """
 
     genome_data = base.omics_database.genome_data
 
