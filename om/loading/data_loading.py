@@ -412,7 +412,7 @@ def run_cuffquant(base, data, genome, overwrite=False, debug=False):
 
         out_path = cxb_dir+'/'+experiment.name
 
-        exp_file = settings.data_directory+'/rnaseq_experiment/bam/'+experiment.name+'.bam'
+        exp_file = settings.data_directory+'/rnaseq_experiment/bam/'+experiment.group_name+'/'+experiment.name+'.bam'
 
         cuffquant_string = '%s -p %d -v --library-type fr-firststrand %s %s' % (settings.cufflinks+'/cuffquant', 8, gff_file, exp_file)
 
@@ -433,13 +433,14 @@ def run_cuffquant(base, data, genome, overwrite=False, debug=False):
 
 
 @timing
-def run_cuffnorm(base, data, genome, debug=False, overwrite=False):
+def run_cuffnorm(base, data, genome, group_name, debug=False, overwrite=False):
     gff_file = settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff'
     cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb'
-    out_path = settings.data_directory+'/rnaseq_experiment/cuffnorm'
+    out_path = settings.data_directory+'/rnaseq_experiment/cuffnorm/'+group_name
 
     session = base.Session()
     experiments = session.query(func.array_agg(data.RNASeqExperiment.name)).\
+                                      filter(data.RNASeqExperiment.group_name == group_name).\
                                       group_by(data.RNASeqExperiment.strain_id, data.RNASeqExperiment.environment_id,\
                                                data.RNASeqExperiment.machine_id, data.RNASeqExperiment.sequencing_type).all()
 
@@ -498,25 +499,26 @@ def find_single_factor_pairwise_contrasts(data_sets):
     return data_set_contrasts
 
 
-def generate_cuffdiff_contrasts(normalized_expression_objects):
+def generate_cuffdiff_contrasts(normalized_expression_objects, group_name):
     contrasts = find_single_factor_pairwise_contrasts(normalized_expression_objects)
-    with open(settings.data_directory+'/rnaseq_experiment/cuffdiff/contrasts.txt', 'wb') as contrast_file:
+    with open(settings.data_directory+'/rnaseq_experiment/cuffdiff/'+group_name+'/contrasts.txt', 'wb') as contrast_file:
         contrast_file.write('condition_A\tcondition_B\n')
         for contrast in contrasts:
             contrast_file.write(contrast[0].name+'\t'+contrast[1].name+'\n')
 
 
 @timing
-def run_cuffdiff(base, data, genome, debug=False, overwrite=False):
+def run_cuffdiff(base, data, genome, group_name, debug=False, overwrite=False):
     gff_file = settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff'
     cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb'
-    out_path = settings.data_directory+'/rnaseq_experiment/cuffdiff'
+    out_path = settings.data_directory+'/rnaseq_experiment/cuffdiff/'+group_name
 
 
     session = base.Session()
     exp_objects = session.query(data.NormalizedExpression).\
                                    join(data.AnalysisComposition, data.NormalizedExpression.id == data.AnalysisComposition.analysis_id).\
-                                   join(data.RNASeqExperiment, data.RNASeqExperiment.id == data.AnalysisComposition.data_set_id).all()
+                                   join(data.RNASeqExperiment, data.RNASeqExperiment.id == data.AnalysisComposition.data_set_id).\
+                                   filter(data.RNASeqExperiment.group_name == group_name).all()
 
 
 
@@ -533,13 +535,13 @@ def run_cuffdiff(base, data, genome, debug=False, overwrite=False):
         os.system('rm -r '+out_path)
         os.mkdir(out_path)
         os.chdir(out_path)
-        generate_cuffdiff_contrasts(exp_objects)
+        generate_cuffdiff_contrasts(exp_objects, group_name)
         os.system(cuffdiff_string)
 
     elif not os.path.exists(out_path):
         os.mkdir(out_path)
         os.chdir(out_path)
-        generate_cuffdiff_contrasts(exp_objects)
+        generate_cuffdiff_contrasts(exp_objects, group_name)
         os.system(cuffdiff_string)
 
 
@@ -733,11 +735,11 @@ def run_gem(base, data, genome, debug=False, overwrite=False, with_control=False
 
 
 @timing
-def load_cuffnorm(base, data):
+def load_cuffnorm(base, data, group_name):
 
     session = base.Session()
 
-    cuffnorm_output = open(settings.data_directory+'/rnaseq_experiment/cuffnorm/isoforms.fpkm_table','r')
+    cuffnorm_output = open(settings.data_directory+'/rnaseq_experiment/cuffnorm/'+group_name+'/isoforms.fpkm_table','r')
     header = cuffnorm_output.readline().rstrip('\n').split('\t')
 
     exp_id_map = {}
@@ -769,8 +771,8 @@ def load_cuffnorm(base, data):
     session.close()
 
 @timing
-def load_cuffdiff():
-    cuffdiff_output = open(settings.data_directory+'/rnaseq_experiment/cuffdiff/gene_exp.diff','r')
+def load_cuffdiff(group_name):
+    cuffdiff_output = open(settings.data_directory+'/rnaseq_experiment/cuffdiff/'+group_name+'/gene_exp.diff','r')
     header = cuffdiff_output.readline()
     diff_exps = {}
 

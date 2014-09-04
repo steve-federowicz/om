@@ -116,14 +116,16 @@ def get_indirect_regulation_frame(rxn, factors=['ArcA','Fnr'], condition=None):
 
 
 
-def add_gene_group(name, genes):
+def add_gene_group(name, genes, genome):
     session = Session()
 
-    gene_group = session.get_or_create(components.GeneGroup, name = name)
+    gene_group = session.get_or_create(GeneGroup, name = name)
 
     for gene in genes:
         if isinstance(gene, basestring):
-            gene = session.query(Gene).filter(or_(Gene.name == gene, Gene.locus_id == gene)).first()
+            gene = session.query(Gene).filter(and_(Gene.genome_id == genome.id,
+                                                   or_(Gene.name == gene,
+                                                       Gene.locus_id == gene))).first()
 
         if gene: session.get_or_create(GeneGrouping, group_id=gene_group.id, gene_id=gene.id)
 

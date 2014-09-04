@@ -268,8 +268,8 @@ class Metabolite(Component):
 class GeneGrouping(Base):
     __tablename__ = 'gene_grouping'
 
-    group_id = Column(Integer, ForeignKey('gene_group.id'), primary_key=True)
-    gene_id = Column(Integer, ForeignKey('gene.id'), primary_key=True)
+    group_id = Column(Integer, ForeignKey('gene_group.id', ondelete="CASCADE"), primary_key=True)
+    gene_id = Column(Integer, ForeignKey('gene.id', ondelete="CASCADE"), primary_key=True)
 
     __table_args__ = (UniqueConstraint('group_id','gene_id'),{})
 

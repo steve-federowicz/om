@@ -46,7 +46,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'ome'
+project = u'The OME Framework'
 copyright = u'2014, Steve Federowicz, Edward O\'Brien, Ali Ebrahim, Zak King, Justin Lu, Joshua Lerman'
 
 # The version info for the project you're documenting, acts as replacement for
