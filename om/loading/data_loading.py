@@ -398,17 +398,21 @@ def run_bowtie2(experiment, fastq_paths, overwrite=False, debug=False):
 
 
 @timing
-def run_cuffquant(base, data, genome, overwrite=False, debug=False):
+def run_cuffquant(base, data, genome, bam_group_name=None, cxb_group_name=None, overwrite=False, debug=False):
 
-    gff_file = settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff'
-    cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb'
+    if cxb_group_name:
+        gff_file = '/'.join([settings.data_directory, 'annotation', genome.ncbi_id+'_'+cxb_group_name+'.gff'])
+        cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb/'+cxb_group_name
+    else:
+        gff_file = settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff'
+        cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb'
 
     if not os.path.exists(cxb_dir):
         os.mkdir(cxb_dir)
 
     session = base.Session()
 
-    for experiment in session.query(data.RNASeqExperiment).all():
+    for experiment in session.query(data.RNASeqExperiment).filter(data.RNASeqExperiment.group_name == bam_group_name).all():
 
         out_path = cxb_dir+'/'+experiment.name
 
@@ -431,11 +435,24 @@ def run_cuffquant(base, data, genome, overwrite=False, debug=False):
             os.chdir(out_path)
             os.system(cuffquant_string)
 
+        if cxb_group_name != bam_group_name and cxb_group_name != None:
+            new_exp = data.RNASeqExperiment(name = experiment.name,
+                                            replicate = experiment.replicate,
+                                            strain_id = experiment.strain_id,
+                                            data_source_id = experiment.data_source_id,
+                                            environment_id = experiment.environment_id,\
+                                            machine_id='miseq', sequencing_type='unpaired',
+                                            group_name=cxb_group_name)
+            session.add(new_exp)
+            session.flush()
+            session.commit()
+
+
 
 @timing
 def run_cuffnorm(base, data, genome, group_name, debug=False, overwrite=False):
     gff_file = settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff'
-    cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb'
+    cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb/'+group_name
     out_path = settings.data_directory+'/rnaseq_experiment/cuffnorm/'+group_name
 
     session = base.Session()
@@ -467,6 +484,7 @@ def run_cuffnorm(base, data, genome, group_name, debug=False, overwrite=False):
         os.mkdir(out_path)
         os.chdir(out_path)
         os.system(cuffnorm_string)
+
 
 
 
@@ -744,13 +762,15 @@ def load_cuffnorm(base, data, group_name):
 
     exp_id_map = {}
     for name in header[1:]:
+
         vals = name.split('_')
         if len(vals) > 7:
             exp_name = '_'.join(vals[0:5]+[str(int(vals[7])+1)]+[vals[6]])
         else:
             exp_name = '_'.join(vals[0:5]+[str(int(vals[6])+1)])
+        print exp_name
 
-        exp_id_map[name] = session.query(data.RNASeqExperiment).filter_by(name=exp_name).one().id
+        exp_id_map[name] = session.query(data.RNASeqExperiment).filter_by(name=exp_name, group_name=group_name).one().id
 
 
 
@@ -765,10 +785,16 @@ def load_cuffnorm(base, data, group_name):
             try: value = float(val)
             except: continue
 
-            session.get_or_create(data.GenomeData, data_set_id=exp_id_map[header[i+1]],\
-                                                   genome_region_id = gene.id,\
-                                                   value=value)
+            genome_data = data.GenomeData(data_set_id=exp_id_map[header[i+1]],
+                                          genome_region_id = gene.id,
+                                          value=value)
+            session.add(genome_data)
+
+    session.flush()
+    session.commit()
     session.close()
+
+
 
 @timing
 def load_cuffdiff(group_name):
@@ -817,11 +843,16 @@ def load_cuffdiff(group_name):
 
 
 
-        session.get_or_create(data.DiffExpData, data_set_id=diff_exps[str(vals[4:6])],\
-                                               genome_region_id = gene.id,\
-                                               value=value, pval=pvalue)
+        diff_exp_data = data.DiffExpData(data_set_id=diff_exps[str(vals[4:6])],\
+                                         genome_region_id = gene.id,\
+                                         value=value, pval=pvalue)
+        session.add(diff_exp_data)
 
-	session.close()
+    session.flush()
+    session.commit()
+    session.close()
+
+
 
 @timing
 def load_gem(chip_peak_analyses, base, data, genome):
@@ -866,6 +897,9 @@ def load_nimblescan(chip_peak_analyses, base, data, genome):
             peak_data = session.get_or_create(data.ChIPPeakData, data_set_id=chip_peak_analysis.id, genome_region_id=peak_region.id,\
                                                 value=vals[5], eventpos=position, pval=0.)
 
+
+    session.flush()
+    session.commit()
     session.close()
 
 
@@ -896,13 +930,17 @@ def load_arraydata(file_path, type='ec2'):
         for i,val in enumerate(vals[2:]):
 
             try: value = float(val)
-            except: print val
-            try:
-                session.get_or_create(data.GenomeData, data_set_id=exp_id_map[i],\
-                                                       genome_region_id = gene.id,\
-                                                       value=value)
-            except: None
+            except:
+                print val
+                continue
 
+            array_data = data.GenomeData(data_set_id=exp_id_map[i],
+                                             genome_region_id = gene.id,
+                                             value=value)
+            session.add(array_data)
+
+    session.flush()
+    session.commit()
     session.close()
 
 

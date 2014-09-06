@@ -184,7 +184,7 @@ if __name__ == "__main__":
     #                    'are you sure you want to do this?'): sys.exit()
 
     base.Base.metadata.drop_all()
-    base.omics_database.genome_data.drop()
+    #base.omics_database.genome_data.drop()
     base.Base.metadata.create_all()
 
     component_loading.load_genomes(base, components)
@@ -193,8 +193,8 @@ if __name__ == "__main__":
 
     data_genomes = session.query(base.Genome).filter(base.Genome.ncbi_id.in_(['NC_000913.2'])).all()
 
-    raw_flag = True
-    normalize_flag = True
+    raw_flag = False
+    normalize_flag = False
 
     for genome in data_genomes:
 
@@ -222,10 +222,8 @@ if __name__ == "__main__":
         component_loading.load_metacyc_transcription_units(base, components, genome)
 
 
-
-
         #data_loading.run_cuffquant(base, data, genome, debug=False)
-        #data_loading.run_cuffnorm(base, data, genome, group_name='crp', debug=False, overwrite=True)
+        data_loading.run_cuffnorm(base, data, genome, group_name='crp', debug=False, overwrite=True)
         #data_loading.run_cuffnorm(base, data, genome, group_name='yome', debug=False, overwrite=True)
         #data_loading.run_cuffdiff(base, data, genome, group_name='crp', debug=False, overwrite=True)
         #data_loading.run_cuffdiff(base, data, genome, group_name='yome', debug=False, overwrite=True)
@@ -236,7 +234,7 @@ if __name__ == "__main__":
         data_loading.load_nimblescan(session.query(ChIPPeakAnalysis).all(), base, data, genome)
 
         data_loading.load_cuffnorm(base, data, group_name='crp')
-        data_loading.load_cuffnorm(base, data, group_name='yome')
+        #data_loading.load_cuffnorm(base, data, group_name='yome')
         data_loading.load_cuffdiff(group_name='crp')
         data_loading.load_cuffdiff(group_name='yome')
 

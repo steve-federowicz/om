@@ -1,6 +1,6 @@
 import sys, os, math, re
 
-from sqlalchemy import text, or_
+from sqlalchemy import text, or_, and_
 
 from om import settings, timing
 
@@ -139,14 +139,15 @@ def scrub_metacyc_entry(entry, args=['UNIQUE-ID','COMMON-NAME','TYPES'],extra_ar
         return None
 
 
-def get_gene_with_metacyc(session, base, components, gene_entry):
+def get_gene_with_metacyc(session, base, components, genome, gene_entry):
     vals = scrub_metacyc_entry(gene_entry, args=['UNIQUE-ID','ACCESSION-1','LEFT-END-POSITION',\
                                                           'RIGHT-END-POSITION','TRANSCRIPTION-DIRECTION',\
                                                           'COMMON-NAME'])
     if vals is None: return None
 
-    gene = session.query(components.Gene).filter(or_(components.Gene.locus_id == vals['ACCESSION-1'][0],\
-                                                     components.Gene.name == vals['COMMON-NAME'][0])).first()
+    gene = session.query(components.Gene).filter(and_(components.Gene.genome_id == genome.id,
+                                                      or_(components.Gene.locus_id == vals['ACCESSION-1'][0],
+                                                          components.Gene.name == vals['COMMON-NAME'][0]))).first()
     if gene is None:
         print 'Exception, MetaCyc gene:'+vals['ACCESSION-1'][0]+' not found in genbank'
 
@@ -168,7 +169,7 @@ def update_gene_with_metacyc(session, base, components, gene_entry):
     session.flush()
 
 
-def get_protein_with_metacyc(session, base, components, protein_entry):
+def get_protein_with_metacyc(session, base, components, genome, protein_entry):
     vals = scrub_metacyc_entry(protein_entry,extra_args=['GENE'])
     if vals is None: return None
 
@@ -179,7 +180,7 @@ def get_protein_with_metacyc(session, base, components, protein_entry):
         print 'MetaCyc issue, gene: '+vals['GENE'][0]+' does not exist'
         return None
 
-    gene = get_gene_with_metacyc(session, base, components, gene_entry)
+    gene = get_gene_with_metacyc(session, base, components, genome, gene_entry)
 
 
     """If the gene exists in genbank, then the protein should exist in genbank as well,
@@ -191,11 +192,11 @@ def get_protein_with_metacyc(session, base, components, protein_entry):
     except:
         return None
 
-def update_protein_with_metacyc(session, base, components, protein_entry):
+def update_protein_with_metacyc(session, base, components, genome, protein_entry):
     vals = scrub_metacyc_entry(protein_entry,extra_args=['GENE'])
     if vals is None: return None
 
-    protein = get_protein_with_metacyc(session, base, components, protein_entry)
+    protein = get_protein_with_metacyc(session, base, components, genome, protein_entry)
     if not protein: return None
 
     protein.long_name = vals['COMMON-NAME'][0]
@@ -217,7 +218,7 @@ def get_or_create_metacyc_ligand(session, base, components, ligand_entry):
                                  long_name=name, smiles=vals['SMILES'][0])
 
 
-def get_or_create_metacyc_protein_complex(session, base, components, protein_complex_entry):
+def get_or_create_metacyc_protein_complex(session, base, components, genome, protein_complex_entry):
     vals = scrub_metacyc_entry(protein_complex_entry,extra_args=['COMPONENTS'])
     if vals is None: return None
 
@@ -240,13 +241,13 @@ def get_or_create_metacyc_protein_complex(session, base, components, protein_com
         if component_vals is None: continue
 
         if 'Protein-Complexes' in component_vals['TYPES']:
-            complex_component = get_or_create_metacyc_protein_complex(session, base, components, metacyc_proteins[component])
+            complex_component = get_or_create_metacyc_protein_complex(session, base, components, genome, metacyc_proteins[component])
 
         elif 'Protein-Small-Molecule-Complexes' in component_vals['TYPES']:
-            complex_component = get_or_create_metacyc_protein_complex(session, base, components, metacyc_protein_cplxs[component])
+            complex_component = get_or_create_metacyc_protein_complex(session, base, components, genome, metacyc_protein_cplxs[component])
 
         elif 'Polypeptides' in component_vals['TYPES']:
-            complex_component = get_protein_with_metacyc(session, base, components, metacyc_proteins[component])
+            complex_component = get_protein_with_metacyc(session, base, components, genome, metacyc_proteins[component])
 
         elif 'Compounds' in component_vals['TYPES']:
             complex_component = get_or_create_metacyc_ligand(session, base, components, metacyc_ligands[component])
@@ -268,7 +269,7 @@ def get_or_create_metacyc_transcription_unit(session, base, components, genome, 
     for metacyc_component in vals['COMPONENTS']:
         try:
             gene_entry = metacyc_genes[metacyc_component]
-            genes.append(get_gene_with_metacyc(session, base, components, gene_entry))
+            genes.append(get_gene_with_metacyc(session, base, components, genome, gene_entry))
         except: None
         try:
             promoter_entry = metacyc_promoters[metacyc_component]
@@ -375,6 +376,7 @@ def load_genbank(genbank_file, base, components):
 def load_genomes(base, components):
     for genbank_file in os.listdir(settings.data_directory+'/annotation/GenBank'):
         if genbank_file[-2:] != 'gb': continue
+        if genbank_file != 'NC_000913.2.gb': continue
         load_genbank(genbank_file, base, components)
 
 
@@ -393,10 +395,10 @@ def load_metacyc_proteins(base, components, genome):
         if vals is None: continue
 
         if 'Protein-Complexes' in vals['TYPES']:
-            get_or_create_metacyc_protein_complex(session, base, components, entry)
+            get_or_create_metacyc_protein_complex(session, base, components, genome, entry)
 
         elif 'Polypeptides' in vals['TYPES']:
-            update_protein_with_metacyc(session, base, components, entry)
+            update_protein_with_metacyc(session, base, components, genome, entry)
 
 @timing
 def load_metacyc_protein_cplxs(base, components, genome):
