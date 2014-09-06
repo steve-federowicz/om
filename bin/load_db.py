@@ -110,9 +110,10 @@ def query_experiment_sets():
 
     ome = base.Session()
 
-    experiment_sets['RNAseq'] = ome.query(func.array_agg(RNASeqExperiment.name)).\
-                                          group_by(RNASeqExperiment.strain_id, RNASeqExperiment.environment_id,\
-                                                   RNASeqExperiment.machine_id,RNASeqExperiment.sequencing_type).all()
+    experiment_sets['RNAseq'] = ome.query(func.array_agg(RNASeqExperiment.name),RNASeqExperiment.group_name).\
+                                          group_by(RNASeqExperiment.group_name, RNASeqExperiment.strain_id,
+                                                   RNASeqExperiment.environment_id, RNASeqExperiment.machine_id,
+                                                   RNASeqExperiment.sequencing_type).all()
 
     experiment_sets['array'] = ome.query(func.array_agg(ArrayExperiment.name)).\
                                          group_by(ArrayExperiment.strain_id, ArrayExperiment.environment_id,\
@@ -136,18 +137,18 @@ def load_experiment_sets(experiment_sets):
         if len(vals) > 6: exp_group_name = '_'.join(vals[0:5]+vals[-1:])
         else: exp_group_name = '_'.join(vals[0:5])
 
-        exp = ome.query(RNASeqExperiment).filter_by(name=exp_group[0][0]).one()
+        exp = ome.query(RNASeqExperiment).filter_by(name=exp_group[0][0], group_name=exp_group[1]).one()
         exp_analysis = ome.get_or_create(NormalizedExpression, replicate=1, name=exp_group_name, environment_id=exp.environment.id,\
-                                         strain_id=exp.strain.id)
+                                         strain_id=exp.strain.id, group_name=exp.group_name)
         for exp_name in exp_group[0]:
-            exp = ome.query(RNASeqExperiment).filter_by(name=exp_name).one()
-            ome.get_or_create(AnalysisComposition, analysis_id = exp_analysis.id, data_set_id = exp.id)
+            expt = ome.query(RNASeqExperiment).filter_by(name=exp_name, group_name=exp.group_name).one()
+            ome.get_or_create(AnalysisComposition, analysis_id = exp_analysis.id, data_set_id = expt.id)
 
     for exp_group in experiment_sets['array']:
         exp_group_name = '_'.join(exp_group[0][0].split('_')[:-2])
         exp = ome.query(ArrayExperiment).filter_by(name=exp_group[0][0]).one()
         exp_analysis = ome.get_or_create(NormalizedExpression, replicate=1, name=exp_group_name, environment_id=exp.environment.id,\
-                                         strain_id=exp.strain.id)
+                                         strain_id=exp.strain.id, group_name=exp.group_name)
         for exp_name in exp_group[0]:
             exp = ome.query(ArrayExperiment).filter_by(name=exp_name).one()
             ome.get_or_create(AnalysisComposition, analysis_id = exp_analysis.id, data_set_id = exp.id)
@@ -170,10 +171,10 @@ def load_experiment_sets(experiment_sets):
 
 
         exp_analysis = ome.get_or_create(ChIPPeakAnalysis, name=exp_group_name, environment_id=exp.environment.id, strain_id=exp.strain.id,\
-                                                           parameters=json.dumps(parameters), replicate=1)
+                                                           parameters=json.dumps(parameters), replicate=1, group_name=exp.group_name)
         for exp_name in exp_group[0]:
-            exp = ome.query(ChIPExperiment).filter_by(name=exp_name).one()
-            ome.get_or_create(AnalysisComposition, analysis_id = exp_analysis.id, data_set_id = exp.id)
+            expt = ome.query(ChIPExperiment).filter_by(name=exp_name, group_name=exp.group_name).one()
+            ome.get_or_create(AnalysisComposition, analysis_id = exp_analysis.id, data_set_id = expt.id)
 
     ome.close()
 
@@ -187,7 +188,8 @@ if __name__ == "__main__":
     base.omics_database.genome_data.drop()
     base.Base.metadata.create_all()
 
-    component_loading.load_genomes(base, components)
+    features = ['CDS','tRNA','ncRNA']
+    component_loading.load_genomes(base, components, features)
 
     session = base.Session()
 
@@ -198,15 +200,17 @@ if __name__ == "__main__":
 
     for genome in data_genomes:
 
-        component_loading.write_genome_annotation_gff(base, components, genome)
+
+        component_loading.write_genome_annotation_gff(base, components, genome, features)
 
         load_raw_files(settings.data_directory+'/chip_experiment/fastq/crp', group_name='crp', normalize=normalize_flag, raw=raw_flag)
         load_raw_files(settings.data_directory+'/chip_experiment/fastq/yome', group_name='yome', normalize=normalize_flag, raw=raw_flag)
 
         load_raw_files(settings.data_directory+'/chip_experiment/gff', group_name='trn', normalize=False, raw=raw_flag)
 
-        load_raw_files(settings.data_directory+'/rnaseq_experiment/fastq/crp', group_name='crp', normalize=False, raw=False)
-        load_raw_files(settings.data_directory+'/rnaseq_experiment/fastq/yome', group_name='yome', normalize=False, raw=False)
+        #load_raw_files(settings.data_directory+'/rnaseq_experiment/fastq/crp', group_name='crp', normalize=False, raw=False)
+        #load_raw_files(settings.data_directory+'/rnaseq_experiment/fastq/yome', group_name='yome', normalize=False, raw=False)
+        load_raw_files(settings.data_directory+'/rnaseq_experiment/bam/crp_old', group_name='crp_old', normalize=False, raw=False)
         #load_raw_files(settings.data_directory+'/rnaseq_experiment/bam', normalize=True)
         #load_raw_files(settings.data_directory+'/chip_experiment/bam', normalize=False)
         load_raw_files(settings.data_directory+'/microarray/asv2', raw=False)
@@ -222,23 +226,35 @@ if __name__ == "__main__":
         #component_loading.load_metacyc_transcription_units(base, components, genome)
 
 
-        data_loading.run_cuffquant(base, data, genome, bam_group_name='crp', group_name='crp_rRNA_tRNA_ncRNA',  debug=False)
-        data_loading.run_cuffquant(base, data, genome, bam_group_name='crp', group_name='crp_ali_gtf', debug=False)
-        data_loading.run_cuffquant(base, data, genome, bam_group_name='crp', group_name='crp_tRNA_ncRNA', debug=False)
-        data_loading.run_cuffquant(base, data, genome, bam_group_name='crp', group_name='crp', debug=False)
-        data_loading.run_cuffquant(base, data, genome, group_name='yome', debug=False)
-        #data_loading.run_cuffnorm(base, data, genome, group_name='crp', debug=False, overwrite=True)
+        data_loading.run_cuffquant(base, data, genome, bam_group_name='crp', cxb_group_name='CDS_rRNA_tRNA_ncRNA',  debug=False)
+        data_loading.run_cuffquant(base, data, genome, bam_group_name='crp', cxb_group_name='e_coli_notRNA_rRNA', debug=False)
+        data_loading.run_cuffquant(base, data, genome, bam_group_name='crp', cxb_group_name='CDS_tRNA_ncRNA', debug=False)
+        data_loading.run_cuffquant(base, data, genome, bam_group_name='crp', cxb_group_name='CDS', debug=False)
+        data_loading.run_cuffquant(base, data, genome, bam_group_name='crp_old', cxb_group_name='e_coli_notRNA_rRNA_old', debug=False)
+
+        #data_loading.run_cuffnorm(base, data, genome, group_name='CDS_rRNA_tRNA_ncRNA', debug=False, overwrite=True)
+        #data_loading.run_cuffnorm(base, data, genome, group_name='e_coli_notRNA_rRNA', debug=False, overwrite=True)
+        #data_loading.run_cuffnorm(base, data, genome, group_name='CDS_tRNA_ncRNA', debug=False, overwrite=True)
+        #data_loading.run_cuffnorm(base, data, genome, group_name='CDS', debug=False, overwrite=True)
+        #data_loading.run_cuffnorm(base, data, genome, group_name='e_coli_notRNA_rRNA_old', debug=False, overwrite=True)
+
         #data_loading.run_cuffnorm(base, data, genome, group_name='yome', debug=False, overwrite=True)
         #data_loading.run_cuffdiff(base, data, genome, group_name='crp', debug=False, overwrite=True)
         #data_loading.run_cuffdiff(base, data, genome, group_name='yome', debug=False, overwrite=True)
         #data_loading.run_gem(base, data, genome, debug=True)
 
-        """
-        data_loading.load_gem(session.query(ChIPPeakAnalysis).all(), base, data, genome)
-        data_loading.load_nimblescan(session.query(ChIPPeakAnalysis).all(), base, data, genome)
 
-        data_loading.load_cuffnorm(base, data, group_name='crp')
+        #data_loading.load_gem(session.query(ChIPPeakAnalysis).all(), base, data, genome)
+        #data_loading.load_nimblescan(session.query(ChIPPeakAnalysis).all(), base, data, genome)
+
+        data_loading.load_cuffnorm(base, data, group_name='CDS_rRNA_tRNA_ncRNA')
+        data_loading.load_cuffnorm(base, data, group_name='e_coli_notRNA_rRNA')
+        data_loading.load_cuffnorm(base, data, group_name='CDS_tRNA_ncRNA')
+        data_loading.load_cuffnorm(base, data, group_name='CDS')
+        data_loading.load_cuffnorm(base, data, group_name='e_coli_notRNA_rRNA_old')
+        """
         data_loading.load_cuffnorm(base, data, group_name='yome')
+
         data_loading.load_cuffdiff(group_name='crp')
         data_loading.load_cuffdiff(group_name='yome')
 

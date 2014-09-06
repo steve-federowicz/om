@@ -168,7 +168,7 @@ class DataSet(Base):
     __mapper_args__ = {'polymorphic_identity': 'data_set',
                        'polymorphic_on': type}
 
-    __table_args__ = (UniqueConstraint('name','replicate'),{})
+    __table_args__ = (UniqueConstraint('name','replicate', 'group_name'),{})
 
     def __repr__(self):
         return "Data Set (#%d):  %s" % \
@@ -198,6 +198,7 @@ class DataSet(Base):
         if data_source_id is None:
             data_source_id = session.get_or_create(DataSource, name='generic', lab='generic', institution='generic').id
         session.close()
+
 
         self.name = name
         self.replicate = replicate
@@ -254,8 +255,8 @@ class RNASeqExperiment(DataSet):
     __mapper_args__ = { 'polymorphic_identity': 'rnaseq_experiment' }
 
     def __repr__(self):
-        return "RNASeqExperiment (#%d, %s):  %s" % \
-            (self.id, self.name, self.replicate)
+        return "RNASeqExperiment (#%d, %s):  %s  %s" % \
+            (self.id, self.name, self.replicate, self.group_name)
 
     def __repr__dict__(self):
         data_set = DataSet.__repr__dict__(self)
@@ -348,8 +349,8 @@ class Analysis(DataSet):
     __mapper_args__ = {'polymorphic_identity': 'analysis',
                        'polymorphic_on': 'type'}
 
-    def __init__(self, name, replicate=1, strain_id=None, environment_id=None):
-        super(Analysis, self).__init__(name, replicate, strain_id, environment_id)
+    def __init__(self, name, replicate=1, strain_id=None, environment_id=None, group_name=None):
+        super(Analysis, self).__init__(name, replicate, strain_id, environment_id, group_name=group_name)
 
     def __repr__(self):
         return "Analysis (#%d):  %s" % \
@@ -369,8 +370,8 @@ class ChIPPeakAnalysis(Analysis):
         return "ChIP Peak Analysis (#%d, %s): %s" % \
                 (self.id, self.name, self.environment)
 
-    def __init__(self, name, replicate=1, strain_id=None, environment_id=None, method=None, parameters=None):
-        super(ChIPPeakAnalysis, self).__init__(name, replicate, strain_id, environment_id)
+    def __init__(self, name, replicate=1, strain_id=None, environment_id=None, method=None, parameters=None, group_name=None):
+        super(ChIPPeakAnalysis, self).__init__(name, replicate, strain_id, environment_id, group_name=group_name)
         self.method = method
         self.parameters = parameters
 
@@ -385,10 +386,11 @@ class NormalizedExpression(Analysis):
     __mapper_args__ = {'polymorphic_identity': 'normalized_expression'}
 
 
-    def __init__(self, name, replicate=1, strain_id=None, environment_id=None, norm_method=None, dispersion_method=None):
-        super(NormalizedExpression, self).__init__(name, replicate, strain_id, environment_id)
+    def __init__(self, name, replicate=1, strain_id=None, environment_id=None, group_name=None, norm_method=None, dispersion_method=None):
+        super(NormalizedExpression, self).__init__(name, replicate, strain_id, environment_id, group_name)
         self.norm_method = norm_method
         self.dispersion_method = dispersion_method
+
 
     def __repr__(self):
         return "Expression Data (#%d):  %s" % \
@@ -511,6 +513,16 @@ ome = Session()
 from om.components import Gene,TU,TUGenes
 
 
+grouped = ome.query(func.distinct(ChIPPeakData.data_set_id).label('data_set_id'),\
+                    func.max(ChIPPeakData.value).label('value'),\
+                    ChIPPeakData.grouped_eventpos.label('eventpos'),\
+                    GenomeRegion.strand.label('strand')).\
+                    join(GenomeRegion).\
+                    group_by(ChIPPeakData.data_set_id, ChIPPeakData.grouped_eventpos, GenomeRegion.strand).subquery()
+
+
+
+
 gene_expression_data = ome.query(
           Gene.id.label('gene_id'),
           Gene.name.label('gene_name'),
@@ -522,11 +534,12 @@ gene_expression_data = ome.query(
           InVivoEnvironment.nitrogen_source.label('nitrogen_source'),
           InVivoEnvironment.electron_acceptor.label('electron_acceptor'),
           DataSet.type.label('dataset_type'),
+          DataSet.group_name.label('group_name'),
           func.max(DataSet.id).label('max_dataset_id'),
           func.avg(GenomeData.value).label('value'),
           func.stddev_pop(GenomeData.value).label('stddev')).\
     join(GenomeData, DataSet, Strain, InVivoEnvironment).\
-    group_by(Gene.id, Strain.id, DataSet.type, InVivoEnvironment.id,
+    group_by(Gene.id, DataSet.group_name, Strain.id, DataSet.type, InVivoEnvironment.id,
              Gene.locus_id, Gene.name, Strain.name, InVivoEnvironment.carbon_source,
                                                     InVivoEnvironment.nitrogen_source,
                                                     InVivoEnvironment.electron_acceptor).order_by(DataSet.type, InVivoEnvironment.id).subquery()
@@ -542,9 +555,9 @@ class GeneExpressionData(Base):
 
 
     def __repr__(self):
-        return "Gene: (%s, %s), Value: %5.2f, std:%5.2f, Condition: %s, %s, %s, Strain: %s, %s" % \
+        return "Gene: (%s, %s), Value: %5.2f, std:%5.2f, Condition: %s, %s, %s, Strain: %s, %s %s" % \
             (self.locus_id, self.gene_name, self.value, self.stddev, self.carbon_source,
-             self.nitrogen_source, self.electron_acceptor, self.strain, self.dataset_type)
+             self.nitrogen_source, self.electron_acceptor, self.strain, self.dataset_type, self.group_name)
 
 
 

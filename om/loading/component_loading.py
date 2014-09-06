@@ -303,7 +303,7 @@ def get_or_create_metacyc_transcription_unit(session, base, components, genome, 
 
 
 @timing
-def load_genbank(genbank_file, base, components):
+def load_genbank(genbank_file, base, components, features_to_load=['CDS']):
     """
         Original code by halatif and jtan, modified here to load into ome db
     """
@@ -327,7 +327,7 @@ def load_genbank(genbank_file, base, components):
         ome_protein = {'long_name':''}
 
 
-        if feature.type == 'CDS':
+        if feature.type in features_to_load:
 
             try: locus_tag = feature.qualifiers['locus_tag'][0]  #if no locus_tag
             except: continue                                     #continue
@@ -372,10 +372,11 @@ def load_genbank(genbank_file, base, components):
 
 
 @timing
-def load_genomes(base, components):
+def load_genomes(base, components, features=['CDS']):
     for genbank_file in os.listdir(settings.data_directory+'/annotation/GenBank'):
+        if genbank_file != 'NC_000913.2.gb': continue
         if genbank_file[-2:] != 'gb': continue
-        load_genbank(genbank_file, base, components)
+        load_genbank(genbank_file, base, components, features)
 
 
 @timing
@@ -583,12 +584,16 @@ def load_regulatory_network(ome):
 
 
 @timing
-def write_genome_annotation_gff(base, components, genome):
+def write_genome_annotation_gff(base, components, genome, features=['CDS']):
     session = base.Session()
 
     genbank_fasta_string = 'gi|'+genome.genbank_id+'|ref|'+genome.ncbi_id+'|'
 
-    with open(settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff', 'wb') as gff_file:
+    extra_args = '_'.join([genome.ncbi_id]+features)
+
+    gff_file_str = '/'.join([settings.data_directory,'annotation',extra_args])+'.gff'
+
+    with open(gff_file_str, 'wb') as gff_file:
 
         for gene in session.query(components.Gene).filter(components.Gene.genome_id == genome.id).all():
 

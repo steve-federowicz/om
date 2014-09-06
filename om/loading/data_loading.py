@@ -10,7 +10,7 @@ import os,subprocess,sys,math
 
 from scipy.stats import ttest_ind
 from numpy import zeros, roll, array, mean, genfromtxt, zeros_like, arange
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, update
 from IPython import embed
 
 import pysam
@@ -398,17 +398,21 @@ def run_bowtie2(experiment, fastq_paths, overwrite=False, debug=False):
 
 
 @timing
-def run_cuffquant(base, data, genome, cxb_group_name=None, overwrite=False, debug=False):
+def run_cuffquant(base, data, genome, bam_group_name=None, cxb_group_name=None, overwrite=False, debug=False):
 
-    gff_file = settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff'
-    cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb'
+    if cxb_group_name:
+        gff_file = '/'.join([settings.data_directory, 'annotation', genome.ncbi_id+'_'+cxb_group_name+'.gff'])
+        cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb/'+cxb_group_name
+    else:
+        gff_file = settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff'
+        cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb'
 
     if not os.path.exists(cxb_dir):
         os.mkdir(cxb_dir)
 
     session = base.Session()
 
-    for experiment in session.query(data.RNASeqExperiment).all():
+    for experiment in session.query(data.RNASeqExperiment).filter(data.RNASeqExperiment.group_name == bam_group_name).all():
 
         out_path = cxb_dir+'/'+experiment.name
 
@@ -431,11 +435,23 @@ def run_cuffquant(base, data, genome, cxb_group_name=None, overwrite=False, debu
             os.chdir(out_path)
             os.system(cuffquant_string)
 
+        if cxb_group_name != bam_group_name and cxb_group_name != None:
+            new_exp = data.RNASeqExperiment(name = experiment.name,
+                                            replicate = experiment.replicate,
+                                            strain_id = experiment.strain_id,
+                                            data_source_id = experiment.data_source_id,
+                                            environment_id = experiment.environment_id,\
+                                            machine_id='miseq', sequencing_type='unpaired',
+                                            group_name=cxb_group_name)
+            session.add(new_exp)
+            session.flush()
+            session.commit()
+
 
 @timing
 def run_cuffnorm(base, data, genome, group_name, debug=False, overwrite=False):
-    gff_file = settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff'
-    cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb'
+    gff_file = settings.data_directory+'/annotation/'+genome.ncbi_id+'_'+group_name+'.gff'
+    cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb/'+group_name
     out_path = settings.data_directory+'/rnaseq_experiment/cuffnorm/'+group_name
 
     session = base.Session()
@@ -750,7 +766,7 @@ def load_cuffnorm(base, data, group_name):
         else:
             exp_name = '_'.join(vals[0:5]+[str(int(vals[6])+1)])
 
-        exp_id_map[name] = session.query(data.RNASeqExperiment).filter_by(name=exp_name).one().id
+        exp_id_map[name] = session.query(data.RNASeqExperiment).filter_by(name=exp_name, group_name=group_name).one().id
 
 
 
@@ -765,9 +781,13 @@ def load_cuffnorm(base, data, group_name):
             try: value = float(val)
             except: continue
 
-            session.get_or_create(data.GenomeData, data_set_id=exp_id_map[header[i+1]],\
-                                                   genome_region_id = gene.id,\
-                                                   value=value)
+            genome_data = data.GenomeData(data_set_id=exp_id_map[header[i+1]],
+                                          genome_region_id = gene.id,
+                                          value=value)
+            session.add(genome_data)
+
+    session.flush()
+    session.commit()
     session.close()
 
 @timing
