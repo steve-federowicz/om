@@ -1,6 +1,6 @@
 import sys, os, math, re
 
-from sqlalchemy import text, or_, and_
+from sqlalchemy import text, or_, and_, func
 
 from om import settings, timing
 
@@ -546,41 +546,42 @@ def load_kegg_pathways(base, components):
         pathway_name = vals[1].strip()
         kegg_pathway = session.get_or_create(components.GeneGroup, name = pathway_name)
         for bnum in bnums:
-            gene = session.query(components.Gene).filter_by(locus_id=bnum).one()
+            gene = session.query(components.Gene).filter_by(locus_id=bnum).first()
+            if not gene: continue
             session.get_or_create(components.GeneGrouping, group_id = kegg_pathway.id, gene_id = gene.id)
     session.commit()
     session.close()
 
 
 @timing
-def load_regulatory_network(ome):
-    sigma_network = open('../../reconstruction/regulonDB/network_sigma_gene.txt','r')
-    #sigma_dict = {'Sigma19':'', 'Sigma24':'', 'Sigma38':'b2741'
-    for line in sigma_network.readlines():
-        vals = line.split('\t')
-        if vals[0] != 'Sigma38': continue
-        try:
-            rpoS = 'rpoS'
-            rpoS_bnum = 'b2741'
-            #print "INSERT INTO regulatory_network(reg_gene, reg_bnum, regd_gene, regd_bnum, direction) " + \
-            #            "VALUES ('%s', '%s', '%s', '%s', '%s');"%(rpoS, rpoS_bnum, vals[1], vals[3], vals[2])
-            #ome.execute("INSERT INTO regulatory_network(reg_gene, reg_bnum, regd_gene, regd_bnum, direction) VALUES ('%s', '%s', '%s', '%s', '%s');"%(rpoS, rpoS_bnum, vals[1], vals[3], vals[2]))
-            ome.commit()
-        except: None
-    sigma_network.close()
+def load_regulatory_network(base, components, data, genome):
 
-    regulatory_network = open(settings.trn_directory + 'reconstruction/regulonDB/regDB_regulatory_network.txt','r')
+    data.RegulatoryNetwork.__table__.drop()
+    data.RegulatoryNetwork.__table__.create()
+
+
+    session = base.Session()
+    regulatory_network = open(settings.data_directory+'/annotation/regulondb_gene_reg_network.txt','r')
     for line in regulatory_network.readlines():
         vals = line.split('\t')
-        if len(vals) < 5: continue
-        quality = ''
-        evidence = ''
-        if len(vals) >= 6:
-            evidence, quality = parse_evidence(vals[6].strip())
-        ome.execute("INSERT INTO regulatory_network(reg_gene, reg_bnum, regd_gene, regd_bnum, direction, quality, evidence) " + \
-                    "VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s');"%(vals[1], vals[2], vals[3], vals[4], vals[5], quality, evidence))
-        ome.commit()
-    regulatory_network.close()
+
+
+        reg_gene = session.query(components.Gene).filter(and_(func.lower(components.Gene.name) == vals[0].lower(),
+                                                              components.Gene.genome_id == genome.id)).first()
+
+        regd_gene = session.query(components.Gene).filter(and_(func.lower(components.Gene.name) == vals[1].lower(),
+                                                               components.Gene.genome_id == genome.id)).first()
+
+        if reg_gene is None or regd_gene is None: continue
+
+        session.get_or_create(data.RegulatoryNetwork, reg_gene_id=reg_gene.id, regd_gene_id=regd_gene.id,
+                                                      direction=vals[2],
+                                                      evidence=vals[3])
+
+
+    session.flush()
+    session.commit()
+    session.close()
 
 
 

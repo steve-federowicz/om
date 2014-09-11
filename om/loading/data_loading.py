@@ -10,7 +10,7 @@ import os,subprocess,sys,math
 
 from scipy.stats import ttest_ind
 from numpy import zeros, roll, array, mean, genfromtxt, zeros_like, arange
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, and_
 from IPython import embed
 
 import pysam
@@ -398,21 +398,18 @@ def run_bowtie2(experiment, fastq_paths, overwrite=False, debug=False):
 
 
 @timing
-def run_cuffquant(base, data, genome, bam_group_name=None, cxb_group_name=None, overwrite=False, debug=False):
+def run_cuffquant(base, data, genome, group_name=None, overwrite=False, debug=False):
 
-    if cxb_group_name:
-        gff_file = '/'.join([settings.data_directory, 'annotation', genome.ncbi_id+'_'+cxb_group_name+'.gff'])
-        cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb/'+cxb_group_name
-    else:
-        gff_file = settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff'
-        cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb'
+
+    gff_file = settings.data_directory+'/annotation/'+genome.ncbi_id+'_'+group_name+'.gff'
+    cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb/'+group_name
 
     if not os.path.exists(cxb_dir):
         os.mkdir(cxb_dir)
 
     session = base.Session()
 
-    for experiment in session.query(data.RNASeqExperiment).filter(data.RNASeqExperiment.group_name == bam_group_name).all():
+    for experiment in session.query(data.RNASeqExperiment).filter(data.RNASeqExperiment.group_name == group_name).all():
 
         out_path = cxb_dir+'/'+experiment.name
 
@@ -435,23 +432,15 @@ def run_cuffquant(base, data, genome, bam_group_name=None, cxb_group_name=None, 
             os.chdir(out_path)
             os.system(cuffquant_string)
 
-        if cxb_group_name != bam_group_name and cxb_group_name != None:
-            new_exp = data.RNASeqExperiment(name = experiment.name,
-                                            replicate = experiment.replicate,
-                                            strain_id = experiment.strain_id,
-                                            data_source_id = experiment.data_source_id,
-                                            environment_id = experiment.environment_id,\
-                                            machine_id='miseq', sequencing_type='unpaired',
-                                            group_name=cxb_group_name)
-            session.add(new_exp)
-            session.flush()
-            session.commit()
+
 
 
 
 @timing
-def run_cuffnorm(base, data, genome, group_name, debug=False, overwrite=False):
-    gff_file = settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff'
+def run_cuffnorm(base, data, genome, group_name, gff_file=None, debug=False, overwrite=False):
+
+    if not gff_file:
+      gff_file = settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff'
     cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb/'+group_name
     out_path = settings.data_directory+'/rnaseq_experiment/cuffnorm/'+group_name
 
@@ -526,9 +515,12 @@ def generate_cuffdiff_contrasts(normalized_expression_objects, group_name):
 
 
 @timing
-def run_cuffdiff(base, data, genome, group_name, debug=False, overwrite=False):
-    gff_file = settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff'
-    cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb'
+def run_cuffdiff(base, data, genome, group_name, gff_file=None, debug=False, overwrite=False):
+
+    if not gff_file:
+        gff_file = settings.data_directory+'/annotation/'+genome.ncbi_id+'.gff'
+
+    cxb_dir = settings.data_directory+'/rnaseq_experiment/cxb/'+group_name
     out_path = settings.data_directory+'/rnaseq_experiment/cuffdiff/'+group_name
 
 
@@ -537,7 +529,6 @@ def run_cuffdiff(base, data, genome, group_name, debug=False, overwrite=False):
                                    join(data.AnalysisComposition, data.NormalizedExpression.id == data.AnalysisComposition.analysis_id).\
                                    join(data.RNASeqExperiment, data.RNASeqExperiment.id == data.AnalysisComposition.data_set_id).\
                                    filter(data.RNASeqExperiment.group_name == group_name).all()
-
 
 
     cuffdiff_string = '%s -v -p %d --library-type fr-firststrand --FDR 0.05 -C %s -L %s %s %s' % \
@@ -572,6 +563,7 @@ def calculate_differential_expression(base, data, experiment1, experiment2):
     genes = array([g[0] for g in session.query(func.distinct(data.GenomeData.genome_region_id)).\
                                          filter(data.GenomeData.data_set_id.in_([x.id for x in experiment1.children+experiment2.children])).all()])
 
+
     n_genes = len(genes)
     # query data
     data_vals1 = session.query(data.GenomeData.value).filter(data.GenomeData.data_set_id.in_([x.id for x in experiment1.children])).\
@@ -580,7 +572,7 @@ def calculate_differential_expression(base, data, experiment1, experiment2):
     data_vals2 = session.query(data.GenomeData.value).filter(data.GenomeData.data_set_id.in_([x.id for x in experiment2.children])).\
                                                     order_by(data.GenomeData.genome_region_id).all()
 
-    if len(data_vals1) % n_genes != 0 or len(data_vals1) % n_genes != 0 or len(data_vals1) == 0 or len(data_vals2) == 0:
+    if n_genes == 0 or len(data_vals1) % n_genes != 0 or len(data_vals1) % n_genes != 0 or len(data_vals1) == 0 or len(data_vals2) == 0:
         return array(0),array(0),array(0)
 
     d1 = array(data_vals1).reshape(n_genes, -1)
@@ -611,9 +603,9 @@ def calculate_differential_expression(base, data, experiment1, experiment2):
 
 
 @timing
-def run_array_ttests(base, data, genome, debug=False, overwrite=False):
+def run_array_ttests(base, data, genome, group_name, debug=False, overwrite=False):
     session = base.Session()
-    exp_objects = session.query(data.NormalizedExpression).\
+    exp_objects = session.query(data.NormalizedExpression).filter(data.NormalizedExpression.group_name == group_name).\
                                    join(data.AnalysisComposition, data.NormalizedExpression.id == data.AnalysisComposition.analysis_id).\
                                    join(data.ArrayExperiment, data.ArrayExperiment.id == data.AnalysisComposition.data_set_id).all()
 
@@ -636,8 +628,8 @@ def run_array_ttests(base, data, genome, debug=False, overwrite=False):
                 else: exp_name += x[i]+'/'+y[i]+'_'
             exp_name = exp_name.rstrip('_')
 
-        print experiment1,experiment2
-        diff_exp = session.get_or_create(data.DifferentialExpression, name=exp_name, replicate=1, norm_method='gcrma',fdr=.05)
+        #print experiment1,experiment2
+        diff_exp = session.get_or_create(data.DifferentialExpression, name=exp_name, replicate=1, norm_method='gcrma',fdr=.05, group_name=group_name)
 
         session.get_or_create(data.AnalysisComposition, analysis_id = diff_exp.id, data_set_id = experiment1.id)
         session.get_or_create(data.AnalysisComposition, analysis_id = diff_exp.id, data_set_id = experiment2.id)
@@ -655,10 +647,14 @@ def run_array_ttests(base, data, genome, debug=False, overwrite=False):
             if math.isnan(q[i]): pval = 0.
             else: pval = q[i]
 
-            session.get_or_create(data.DiffExpData, data_set_id = diff_exp.id,\
-                                                    genome_region_id = gene_id,\
-                                                    value=value, pval=pval)
+            gene_data = data.DiffExpData(data_set_id = diff_exp.id,\
+                                         genome_region_id = gene_id,\
+                                         value=value, pval=pval)
+            session.add(gene_data)
 
+    session.flush()
+    session.commit()
+    session.close()
 
 
 @timing
@@ -765,10 +761,9 @@ def load_cuffnorm(base, data, group_name):
 
         vals = name.split('_')
         if len(vals) > 7:
-            exp_name = '_'.join(vals[0:5]+[str(int(vals[7])+1)]+[vals[6]])
+            exp_name = '_'.join(vals[0:5]+[str(int(vals[5])+int(vals[7]))]+[vals[6]])
         else:
-            exp_name = '_'.join(vals[0:5]+[str(int(vals[6])+1)])
-        print exp_name
+            exp_name = '_'.join(vals[0:5]+[str(int(vals[5])+int(vals[6]))])
 
         exp_id_map[name] = session.query(data.RNASeqExperiment).filter_by(name=exp_name, group_name=group_name).one().id
 
@@ -832,11 +827,11 @@ def load_cuffdiff(group_name):
                     else: exp_name += x[i]+'/'+y[i]+'_'
                 exp_name = exp_name.rstrip('_')
 
-            diff_exp = session.get_or_create(data.DifferentialExpression, name=exp_name, replicate=1, norm_method='classic-fpkm',fdr=.05)
+            diff_exp = session.get_or_create(data.DifferentialExpression, name=exp_name, replicate=1, norm_method='classic-fpkm',fdr=.05, group_name=group_name)
 
 
-            exp1 = session.query(data.Analysis).filter_by(name=vals[4]).one()
-            exp2 = session.query(data.Analysis).filter_by(name=vals[5]).one()
+            exp1 = session.query(data.Analysis).filter_by(name=vals[4], group_name=group_name).one()
+            exp2 = session.query(data.Analysis).filter_by(name=vals[5], group_name=group_name).one()
             session.get_or_create(data.AnalysisComposition, analysis_id = diff_exp.id, data_set_id = exp1.id)
             session.get_or_create(data.AnalysisComposition, analysis_id = diff_exp.id, data_set_id = exp2.id)
             diff_exps[str(vals[4:6])] = diff_exp.id
@@ -876,14 +871,56 @@ def load_gem(chip_peak_analyses, base, data, genome):
     session.close()
 
 
+
 @timing
-def load_nimblescan(chip_peak_analyses, base, data, genome):
-    gff_path = settings.data_directory+'/chip_peaks/gff/'
+def load_extra_analyses(base, data, genome, analyses_folder, group_name=None):
+    session = base.Session()
+
+    analysis_types = [x[0] for x in session.query(func.distinct(data.Analysis.type)).all()]
+
+    for file_name in os.listdir(analyses_folder):
+        prefix = file_name.split('.')[0]
+        vals = prefix.split('_')
+        if len(vals) < 6: continue
+
+        strain = session.query(data.Strain).filter_by(name=vals[1]).one()
+
+        environment = session.query(data.InVivoEnvironment).filter_by(carbon_source=vals[2],
+                                                                      nitrogen_source=vals[3],
+                                                                      electron_acceptor=vals[4],
+                                                                      temperature=37,
+                                                                      supplements='').one()
+
+
+        if vals[7] == 'peaks':
+            ce = data.ChIPExperiment
+            experiments = session.query(ce).filter(and_(ce.strain_id == strain.id,
+                                                        ce.environment_id == environment.id,
+                                                        ce.antibody == vals[5])).all()
+
+            peak_analysis = session.get_or_create(data.ChIPPeakAnalysis,
+                                                  name=file_name.split('.')[0],
+                                                  environment_id=environment.id,
+                                                  strain_id=strain.id,
+                                                  parameters=vals[6],
+                                                  replicate=1,
+                                                  group_name=group_name
+                                                 )
+
+            for experiment in experiments:
+                session.get_or_create(data.AnalysisComposition, analysis_id = peak_analysis.id, data_set_id = experiment.id)
+
+    session.flush()
+    session.commit()
+    session.close()
+
+@timing
+def load_gff_chip_peaks(chip_peak_analyses, base, data, genome, group_name):
+    gff_path = settings.data_directory+'/chip_peaks/'+group_name
     session = base.Session()
     for chip_peak_analysis in chip_peak_analyses:
-        if chip_peak_analysis.children[0].protocol_type == 'ChIPexo': continue
 
-        try: gff_peak_file = open(gff_path+chip_peak_analysis.name+'.gff','r')
+        try: gff_peak_file = open(gff_path+'/'+chip_peak_analysis.name+'.gff','r')
         except: continue
 
         for line in gff_peak_file.readlines():
@@ -904,7 +941,7 @@ def load_nimblescan(chip_peak_analyses, base, data, genome):
 
 
 @timing
-def load_arraydata(file_path, type='ec2'):
+def load_arraydata(file_path, group_name='ec2'):
     array_data_file = open(file_path)
 
     header = array_data_file.readline().rstrip('\n').split('\t')
@@ -913,10 +950,11 @@ def load_arraydata(file_path, type='ec2'):
 
     exp_id_map = {}
     for i,name in enumerate(header[2:]):
+
         try:
-            exp_id_map[i] = session.query(data.ArrayExperiment).\
-                                    filter(func.lower(data.ArrayExperiment.name) == str(name[:-4]+'_'+type).lower()).one().id
-        except: continue
+            exp_id_map[i] = session.query(data.ArrayExperiment).filter(data.ArrayExperiment.group_name == group_name).\
+                                    filter(func.lower(data.ArrayExperiment.name) == str(name[:-4]+'_'+group_name).lower()).one().id
+        except: print name
 
     for line in array_data_file.readlines():
         vals = line.split('\t')
@@ -929,10 +967,10 @@ def load_arraydata(file_path, type='ec2'):
 
         for i,val in enumerate(vals[2:]):
 
-            try: value = float(val)
-            except:
-                print val
-                continue
+            try:
+                value = float(val)
+                exp_id_map[i]
+            except: continue
 
             array_data = data.GenomeData(data_set_id=exp_id_map[i],
                                              genome_region_id = gene.id,
