@@ -185,7 +185,7 @@ if __name__ == "__main__":
     #                    'are you sure you want to do this?'): sys.exit()
 
     base.Base.metadata.drop_all()
-    base.omics_database.genome_data.drop()
+    #base.omics_database.genome_data.drop()
     base.Base.metadata.create_all()
 
     component_loading.load_genomes(base, components)
@@ -221,6 +221,7 @@ if __name__ == "__main__":
         component_loading.load_metacyc_proteins(base, components, genome)
         component_loading.load_metacyc_bindsites(base, components, genome)
         component_loading.load_metacyc_transcription_units(base, components, genome)
+        component_loading.load_kegg_pathways(base, components)
 
         old_gff_file = settings.data_directory+'/annotation/NC_000913.2_old.gff'
 
@@ -237,7 +238,7 @@ if __name__ == "__main__":
 
         data_loading.load_extra_analyses(base, data, genome, settings.data_directory+'/ChIP_peaks/gps-curated-HL28Aug14', group_name='gps-curated-HL28Aug14')
         data_loading.load_gff_chip_peaks(session.query(ChIPPeakAnalysis).all(), base, data, genome, group_name='gps-curated-HL28Aug14')
-        data_loading.load_kegg_pathways(base, components)
+
 
         data_loading.load_cuffnorm(base, data, group_name='crp')
         data_loading.load_cuffnorm(base, data, group_name='yome')
