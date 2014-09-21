@@ -78,7 +78,7 @@ def load_raw_files(directory_path, group_name='default', normalize=True, overwri
         if experiment.type == 'chip_experiment':
             norm_factor = normalization_factors[experiment.name]
             if experiment.protocol_type == 'ChIPExo':
-                data_loading.load_raw_experiment_data(experiment, loading_cutoff=5., flip=False, five_prime=True, norm_factor=norm_factor)
+                data_loading.load_raw_experiment_data(experiment, loading_cutoff=15, flip=False, five_prime=False, norm_factor=norm_factor)
             elif experiment.protocol_type == 'ChIPchip':
                 data_loading.load_raw_gff_to_db(experiment)
 
@@ -237,7 +237,8 @@ if __name__ == "__main__":
 
         data_loading.load_extra_analyses(base, data, genome, settings.data_directory+'/ChIP_peaks/gps-curated-HL28Aug14', group_name='gps-curated-HL28Aug14')
         data_loading.load_gff_chip_peaks(session.query(ChIPPeakAnalysis).all(), base, data, genome, group_name='gps-curated-HL28Aug14')
-        data_loading.load_kegg_pathways(base, components)
+
+        component_loading.load_kegg_pathways(base, components)
 
         data_loading.load_cuffnorm(base, data, group_name='crp')
         data_loading.load_cuffnorm(base, data, group_name='yome')
