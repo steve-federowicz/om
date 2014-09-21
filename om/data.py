@@ -612,7 +612,6 @@ chip_peak = ome.query(ChIPPeakAnalysis.id.label('id'),
                       join(AnalysisComposition, ChIPPeakAnalysis.id == AnalysisComposition.analysis_id).\
                       join(ChIPExperiment, ChIPExperiment.id == AnalysisComposition.data_set_id).\
                       join(Strain, ChIPExperiment.strain_id == Strain.id).\
-                      join(InVivoEnvironment, InVivoEnvironment.id == ChIPExperiment.environment_id).\
                       group_by(ChIPPeakAnalysis.id, ChIPPeakAnalysis.environment_id, ChIPPeakAnalysis.group_name,
                                ChIPExperiment.target, ChIPExperiment.antibody, Strain.id).subquery()
 
@@ -670,14 +669,15 @@ chip_peak_gene = ome.query(ChIPPeakData.value.label('peak_value'),
                            GenomeRegion.leftpos.label('leftpos'),
                            GenomeRegion.rightpos.label('rightpos'),
                            GenomeRegion.strand.label('strand'),
-                           diff_exp_chip_peak.c.target.label('target'),
-                           diff_exp_chip_peak.c.strain1.label('strain1'),
-                           diff_exp_chip_peak.c.strain2.label('strain2'),
-                           diff_exp_chip_peak.c.antibody.label('antibody'),
-                           diff_exp_chip_peak.c.environment_id.label('environment_id'),
-                           diff_exp_chip_peak.c.carbon_source.label('carbon_source'),
-                           diff_exp_chip_peak.c.nitrogen_source.label('nitrogen_source'),
-                           diff_exp_chip_peak.c.electron_acceptor.label('electron_acceptor'),
+                           chip_peak.c.target.label('target'),
+                           chip_peak.c.strain_id.label('strain_id'),
+                           chip_peak.c.strain.label('strain'),
+                           chip_peak.c.antibody.label('antibody'),
+                           chip_peak.c.environment_id.label('environment_id'),
+                           InVivoEnvironment.carbon_source.label('carbon_source'),
+                           InVivoEnvironment.nitrogen_source.label('nitrogen_source'),
+                           InVivoEnvironment.electron_acceptor.label('electron_acceptor'),
+                           InVivoEnvironment.supplements.label('supplements'),
                            TU.name.label('tu_name'),
                            Gene.id.label('gene_id'),
                            Gene.locus_id.label('locus_id'),
@@ -688,6 +688,8 @@ chip_peak_gene = ome.query(ChIPPeakData.value.label('peak_value'),
                     join(TUGenes, TUGenes.tu_id == TU.id).\
                     join(Gene, Gene.id == TUGenes.gene_id).\
                     join(GenomeRegion, GenomeRegion.id == ChIPPeakData.genome_region_id).\
+                    join(chip_peak, chip_peak.c.id == ChIPPeakData.data_set_id).\
+                    join(InVivoEnvironment, InVivoEnvironment.id == chip_peak.c.environment_id).\
                     join(GenomeRegion2, GenomeRegion2.id == TUGenes.gene_id).subquery()
 
 
@@ -756,6 +758,7 @@ differential_gene_expression_data = ome.query(DiffExpData.value.label('value'),
                                            DiffExpData.pval.label('pval'),
                                            DiffExpData.data_set_id.label('diff_exp_id'),
                                            NormalizedExpression.id.label('expression_id'),
+                                           NormalizedExpression.expression_type.label('dataset_type'),
                                            Gene.id.label('gene_id'),
                                            Gene.locus_id.label('locus_id'),
                                            Gene.name.label('gene_name'),
