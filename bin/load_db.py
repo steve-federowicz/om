@@ -78,7 +78,7 @@ def load_raw_files(directory_path, group_name='default', normalize=True, overwri
         if experiment.type == 'chip_experiment':
             norm_factor = normalization_factors[experiment.name]
             if experiment.protocol_type == 'ChIPExo':
-                data_loading.load_raw_experiment_data(experiment, loading_cutoff=15, flip=False, five_prime=False, norm_factor=norm_factor)
+                data_loading.load_raw_experiment_data(experiment, loading_cutoff=10, flip=False, five_prime=False, norm_factor=norm_factor)
             elif experiment.protocol_type == 'ChIPchip':
                 data_loading.load_raw_gff_to_db(experiment)
 
@@ -184,15 +184,18 @@ if __name__ == "__main__":
     #if not query_yes_no('This will drop the ENTIRE database and load from scratch, ' + \
     #                    'are you sure you want to do this?'): sys.exit()
 
+
     base.Base.metadata.drop_all()
     base.omics_database.genome_data.drop()
     base.Base.metadata.create_all()
 
     component_loading.load_genomes(base, components)
 
+
     session = base.Session()
 
     data_genomes = session.query(base.Genome).filter(base.Genome.ncbi_id.in_(['NC_000913.2'])).all()
+
 
     raw_flag = True
     normalize_flag = True
@@ -201,8 +204,8 @@ if __name__ == "__main__":
 
         component_loading.write_genome_annotation_gff(base, components, genome)
 
-        load_raw_files(settings.data_directory+'/chip_experiment/fastq/crp', group_name='crp', normalize=normalize_flag, raw=raw_flag)
-        load_raw_files(settings.data_directory+'/chip_experiment/fastq/yome', group_name='yome', normalize=normalize_flag, raw=raw_flag)
+        load_raw_files(settings.data_directory+'/chip_experiment/bam/crp', group_name='crp', normalize=normalize_flag, raw=raw_flag)
+        load_raw_files(settings.data_directory+'/chip_experiment/bam/yome', group_name='yome', normalize=normalize_flag, raw=raw_flag)
 
         load_raw_files(settings.data_directory+'/chip_experiment/gff', group_name='trn', normalize=False, raw=raw_flag)
 
