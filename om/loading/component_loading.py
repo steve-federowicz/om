@@ -219,6 +219,8 @@ def get_or_create_metacyc_ligand(session, base, components, ligand_entry):
 
 
 def get_or_create_metacyc_protein_complex(session, base, components, genome, protein_complex_entry):
+    #if protein_complex_entry['UNIQUE-ID'][0] == 'CPLX0-226': print protein_complex_entry
+    #print protein_complex_entry['UNIQUE-ID'][0]
     vals = scrub_metacyc_entry(protein_complex_entry,extra_args=['COMMON-NAME','COMPONENTS'])
     if vals is None: return None
 
@@ -398,7 +400,7 @@ def load_metacyc_proteins(base, components, genome):
         vals = scrub_metacyc_entry(entry)
         if vals is None: continue
 
-        if 'Protein-Complexes' in vals['TYPES']:
+        if 'Protein-Complexes' in vals['TYPES'] or 'Protein-Small-Molecule-Complexes' in vals['TYPES']:
             get_or_create_metacyc_protein_complex(session, base, components, genome, entry)
 
         elif 'Polypeptides' in vals['TYPES']:
@@ -446,7 +448,7 @@ def load_metacyc_bindsites(base, components, genome):
 
     for unique_id,entry in metacyc_binding_sites.iteritems():
 
-        vals = scrub_metacyc_entry(entry, args=['UNIQUE-ID','TYPES','ABS-CENTER-POS','COMMON-NAME'])
+        vals = scrub_metacyc_entry(entry, args=['UNIQUE-ID','TYPES','ABS-CENTER-POS'])
         if vals is None: continue
 
         if 'DNA-Binding-Sites' in vals['TYPES']:
@@ -468,7 +470,7 @@ def load_metacyc_bindsites(base, components, genome):
 
 
     for unique_id,entry in metacyc_regulation.iteritems():
-        vals = scrub_metacyc_entry(entry, args=['UNIQUE-ID','TYPES','ASSOCIATED-BINDING-SITE','REGULATOR','COMMON-NAME'])
+        vals = scrub_metacyc_entry(entry, args=['UNIQUE-ID','TYPES','ASSOCIATED-BINDING-SITE','REGULATOR'])
         if vals is None: continue
 
         if 'Transcription-Factor-Binding' in vals['TYPES']:
