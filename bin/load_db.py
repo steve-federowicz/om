@@ -78,7 +78,7 @@ def load_raw_files(directory_path, group_name='default', normalize=True, overwri
         if experiment.type == 'chip_experiment':
             norm_factor = normalization_factors[experiment.name]
             if experiment.protocol_type == 'ChIPExo':
-                data_loading.load_raw_experiment_data(experiment, loading_cutoff=5., flip=False, five_prime=True, norm_factor=norm_factor)
+                data_loading.load_raw_experiment_data(experiment, loading_cutoff=10, flip=False, five_prime=True, norm_factor=norm_factor)
             elif experiment.protocol_type == 'ChIPchip':
                 data_loading.load_raw_gff_to_db(experiment)
 
@@ -184,25 +184,28 @@ if __name__ == "__main__":
     #if not query_yes_no('This will drop the ENTIRE database and load from scratch, ' + \
     #                    'are you sure you want to do this?'): sys.exit()
 
+    """
     base.Base.metadata.drop_all()
     base.omics_database.genome_data.drop()
     base.Base.metadata.create_all()
 
     component_loading.load_genomes(base, components)
+    """
 
     session = base.Session()
 
     data_genomes = session.query(base.Genome).filter(base.Genome.ncbi_id.in_(['NC_000913.2'])).all()
 
-    raw_flag = True
-    normalize_flag = True
+
+    raw_flag = False
+    normalize_flag = False
 
     for genome in data_genomes:
 
         component_loading.write_genome_annotation_gff(base, components, genome)
 
-        load_raw_files(settings.data_directory+'/chip_experiment/fastq/crp', group_name='crp', normalize=normalize_flag, raw=raw_flag)
-        load_raw_files(settings.data_directory+'/chip_experiment/fastq/yome', group_name='yome', normalize=normalize_flag, raw=raw_flag)
+        load_raw_files(settings.data_directory+'/chip_experiment/bam/crp', group_name='crp', normalize=normalize_flag, raw=raw_flag)
+        load_raw_files(settings.data_directory+'/chip_experiment/bam/yome', group_name='yome', normalize=normalize_flag, raw=raw_flag)
 
         load_raw_files(settings.data_directory+'/chip_experiment/gff', group_name='trn', normalize=False, raw=raw_flag)
 
@@ -213,7 +216,7 @@ if __name__ == "__main__":
         load_raw_files(settings.data_directory+'/microarray/asv2', group_name='asv2', raw=False)
         load_raw_files(settings.data_directory+'/microarray/ec2', group_name='ec2', raw=False)
 
-
+        """
         experiment_sets = query_experiment_sets()
         load_experiment_sets(experiment_sets)
 
@@ -221,7 +224,6 @@ if __name__ == "__main__":
         component_loading.load_metacyc_proteins(base, components, genome)
         component_loading.load_metacyc_bindsites(base, components, genome)
         component_loading.load_metacyc_transcription_units(base, components, genome)
-        component_loading.load_kegg_pathways(base, components)
 
         old_gff_file = settings.data_directory+'/annotation/NC_000913.2_old.gff'
 
@@ -235,10 +237,12 @@ if __name__ == "__main__":
 
         data_loading.load_gem(session.query(ChIPPeakAnalysis).all(), base, data, genome)
         data_loading.load_gff_chip_peaks(session.query(ChIPPeakAnalysis).all(), base, data, genome, group_name='gff-BK')
+        """
 
         data_loading.load_extra_analyses(base, data, genome, settings.data_directory+'/ChIP_peaks/gps-curated-HL28Aug14', group_name='gps-curated-HL28Aug14')
         data_loading.load_gff_chip_peaks(session.query(ChIPPeakAnalysis).all(), base, data, genome, group_name='gps-curated-HL28Aug14')
-
+        """
+        component_loading.load_kegg_pathways(base, components)
 
         data_loading.load_cuffnorm(base, data, group_name='crp')
         data_loading.load_cuffnorm(base, data, group_name='yome')
@@ -252,10 +256,10 @@ if __name__ == "__main__":
         data_loading.run_array_ttests(base, data, genome, group_name='ec2')
 
         data_loading.make_genome_region_map(base, data, genome)
-
+        """
 
     genome_data = base.omics_database.genome_data
 
-    genome_data.create_index([("data_set_id",ASCENDING), ("leftpos", ASCENDING)])
+    #genome_data.create_index([("data_set_id",ASCENDING), ("leftpos", ASCENDING)])
 
     session.close()

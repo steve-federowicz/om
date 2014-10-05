@@ -132,7 +132,7 @@ def parse_gpr(gpr):
     return gprs
 
 
-def scrub_metacyc_entry(entry, args=['UNIQUE-ID','COMMON-NAME','TYPES'],extra_args=[]):
+def scrub_metacyc_entry(entry, args=['UNIQUE-ID','TYPES'],extra_args=[]):
     try:
         return {arg: entry[arg] for arg in args+extra_args}
     except:
@@ -193,7 +193,7 @@ def get_protein_with_metacyc(session, base, components, genome, protein_entry):
         return None
 
 def update_protein_with_metacyc(session, base, components, genome, protein_entry):
-    vals = scrub_metacyc_entry(protein_entry,extra_args=['GENE'])
+    vals = scrub_metacyc_entry(protein_entry,extra_args=['GENE', 'COMMON-NAME'])
     if vals is None: return None
 
     protein = get_protein_with_metacyc(session, base, components, genome, protein_entry)
@@ -207,7 +207,7 @@ def update_protein_with_metacyc(session, base, components, genome, protein_entry
 
 
 def get_or_create_metacyc_ligand(session, base, components, ligand_entry):
-    vals = scrub_metacyc_entry(ligand_entry,extra_args=['SMILES'])
+    vals = scrub_metacyc_entry(ligand_entry,extra_args=['COMMON-NAME','SMILES'])
     if vals is None: return None
 
     name = vals['COMMON-NAME'][0].replace('\'','[prime]')
@@ -219,7 +219,9 @@ def get_or_create_metacyc_ligand(session, base, components, ligand_entry):
 
 
 def get_or_create_metacyc_protein_complex(session, base, components, genome, protein_complex_entry):
-    vals = scrub_metacyc_entry(protein_complex_entry,extra_args=['COMPONENTS'])
+    #if protein_complex_entry['UNIQUE-ID'][0] == 'CPLX0-226': print protein_complex_entry
+    #print protein_complex_entry['UNIQUE-ID'][0]
+    vals = scrub_metacyc_entry(protein_complex_entry,extra_args=['COMMON-NAME','COMPONENTS'])
     if vals is None: return None
 
     protein_complex = session.get_or_create(components.Complex, name=vals['UNIQUE-ID'][0], long_name=vals['COMMON-NAME'][0])
@@ -261,7 +263,10 @@ def get_or_create_metacyc_protein_complex(session, base, components, genome, pro
 
 
 def get_or_create_metacyc_transcription_unit(session, base, components, genome, tu_entry):
-    vals = scrub_metacyc_entry(tu_entry,extra_args=['COMPONENTS'])
+
+    vals = scrub_metacyc_entry(tu_entry,extra_args=['COMPONENTS', 'COMMON-NAME'])
+    if vals is None:
+        vals = scrub_metacyc_entry(tu_entry,extra_args=['COMPONENTS'])
     if vals is None: return None
 
     genes = []
@@ -276,6 +281,7 @@ def get_or_create_metacyc_transcription_unit(session, base, components, genome, 
             tss_vals = scrub_metacyc_entry(promoter_entry,extra_args=['ABSOLUTE-PLUS-1-POS'])
             tss = tss_vals['ABSOLUTE-PLUS-1-POS'][0]
         except: None
+
     if len(genes) == 0: return
 
     try:
@@ -409,11 +415,13 @@ def load_metacyc_proteins(base, components, genome):
         vals = scrub_metacyc_entry(entry)
         if vals is None: continue
 
-        if 'Protein-Complexes' in vals['TYPES']:
+        if 'Protein-Complexes' in vals['TYPES'] or 'Protein-Small-Molecule-Complexes' in vals['TYPES']:
             get_or_create_metacyc_protein_complex(session, base, components, genome, entry)
 
         elif 'Polypeptides' in vals['TYPES']:
             update_protein_with_metacyc(session, base, components, genome, entry)
+
+    session.close()
 
 @timing
 def load_metacyc_protein_cplxs(base, components, genome):
@@ -431,19 +439,15 @@ def load_metacyc_protein_cplxs(base, components, genome):
 
 @timing
 def load_metacyc_transcription_units(base, components, genome):
+
     session = base.Session()
     ##First load annotation file containing merger of metacyc and NCBI
     metacyc_ID = session.get_or_create(base.DataSource, name="metacyc").id
 
 
-
     for unique_id,entry in metacyc_tus.iteritems():
 
-        vals = scrub_metacyc_entry(entry,extra_args=['COMPONENTS'])
-        if vals is None: continue
-
-        if 'Transcription-Units' in vals['TYPES']:
-            get_or_create_metacyc_transcription_unit(session, base, components, genome, entry)
+        get_or_create_metacyc_transcription_unit(session, base, components, genome, entry)
 
     session.close()
 

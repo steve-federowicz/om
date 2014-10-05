@@ -1,6 +1,6 @@
 from om.base import *
 
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship, backref, column_property
 from sqlalchemy import Table, MetaData, create_engine, Column, Integer, \
     String, Float, ForeignKey, select
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -161,7 +161,7 @@ class RNA(Component):
 
     __mapper_args__ = { 'polymorphic_identity': 'rna' }
 
-    id = Column(Integer, ForeignKey('component.id'), primary_key=True)
+    id = Column(Integer, ForeignKey('component.id', ondelete='CASCADE'), primary_key=True)
     type = Column(String(20))
     genome_region_id = Column(Integer, ForeignKey('genome_region.id'))
 
@@ -197,22 +197,31 @@ class TU(RNA):
 
     __mapper_args__ = { 'polymorphic_identity': 'tu' }
 
-    id = Column(Integer, ForeignKey('rna.id'), primary_key=True)
+    id = Column(Integer, ForeignKey('rna.id', ondelete='CASCADE'), primary_key=True)
     genome_region = relationship("GenomeRegion")
     genes = relationship("Gene", secondary="tu_genes",\
                                  primaryjoin = id == TUGenes.tu_id,\
                                  backref="tu")
+    strand = column_property(select([GenomeRegion.strand]).\
+                                where(GenomeRegion.id == id))
+
+    leftpos = column_property(select([GenomeRegion.leftpos]).\
+                                where(GenomeRegion.id == id))
+
+    rightpos = column_property(select([GenomeRegion.rightpos]).\
+                                where(GenomeRegion.id == id))
 
     long_name = Column(String(200))
 
-    """
+
     @hybrid_property
     def tss(self):
-        if self.genome_region.strand == '+':
-            return self.genome_region.leftpos
+        if self.strand == '+':
+            return self.leftpos
         else:
-            return self.genome_region.rightpos
-    """
+            return self.rightpos
+
+
 
     def __init__(self, name, leftpos, rightpos, strand, genome_id, long_name=None):
         super(TU, self).__init__(name, leftpos, rightpos, strand, genome_id)
