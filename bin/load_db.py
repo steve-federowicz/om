@@ -185,7 +185,7 @@ if __name__ == "__main__":
     #                    'are you sure you want to do this?'): sys.exit()
 
     base.Base.metadata.drop_all()
-    #base.omics_database.genome_data.drop()
+    base.omics_database.genome_data.drop()
     base.Base.metadata.create_all()
 
     component_loading.load_genomes(base, components)

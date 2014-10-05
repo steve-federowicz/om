@@ -16,7 +16,7 @@ import cobra
 import cPickle as pickle
 
 
-model = pickle.load(open(settings.data_directory+'/models/iJO1366.pickle', "rb"))
+#model = pickle.load(open(settings.data_directory+'/models/iJO1366.pickle', "rb"))
 #model = cobra.io.load_matlab_model(settings.data_directory+'/models/iJO1366')
 
 
@@ -159,6 +159,67 @@ def write_genome_data_gff(genome_data_set_ids, function='avg'):
             gff_file.write(gff_string)
 
     session.close()
+
+
+
+
+def get_chip_peak_regions(session, strains, antibodies, environments, peak_group_name='%', exp_group_name='crp'):
+
+
+
+    grouped = session.query(func.distinct(ChIPPeakData.data_set_id).label('data_set_id'),\
+                                func.max(ChIPPeakData.value).label('value'),\
+                                ChIPPeakData.grouped_eventpos.label('eventpos'),\
+                                GenomeRegion.strand.label('strand')).\
+                                join(GenomeRegion).\
+                                group_by(ChIPPeakData.data_set_id, ChIPPeakData.grouped_eventpos, GenomeRegion.strand).subquery()
+
+
+    regions = session.query(ChIPPeakData).join(grouped, and_(grouped.c.data_set_id == ChIPPeakData.data_set_id,\
+                                                         grouped.c.eventpos == ChIPPeakData.grouped_eventpos,\
+                                                         grouped.c.value == ChIPPeakData.value)).\
+                                      join(ChIPPeakAnalysis, ChIPPeakAnalysis.id == ChIPPeakData.data_set_id).\
+                                      filter(ChIPPeakAnalysis.group_name.ilike(peak_group_name)).\
+                                      join(Strain, InVivoEnvironment).\
+                                      join(AnalysisComposition, AnalysisComposition.analysis_id == ChIPPeakAnalysis.id).\
+                                      join(ChIPExperiment, AnalysisComposition.data_set_id == ChIPExperiment.id).\
+                                      filter(and_(ChIPExperiment.antibody.in_(antibodies),
+                                                  Strain.id.in_([x.id for x in strains]),
+                                                  InVivoEnvironment.id.in_([x.id for x in environments]),
+                                                  InVivoEnvironment.supplements == '')).\
+                                      order_by(ChIPPeakData.eventpos).all()
+
+
+
+    chip_data_ids = [x.id for x in session.query(ChIPExperiment).join(Strain,InVivoEnvironment).\
+                                              filter(and_(ChIPExperiment.antibody.in_(antibodies),
+                                                          InVivoEnvironment.id.in_([x.id for x in environments]),
+                                                          InVivoEnvironment.supplements == '',
+                                                          Strain.id.in_([x.id for x in strains]))).all()]
+
+    return regions,chip_data_ids
+
+
+
+
+def get_genome_data(leftpos, rightpos, strand=['+','-'], data_set_ids=None, operator='$avg'):
+
+    pipeline = [{"$match":
+                    {"$and":
+                        [{"leftpos" : {"$gte": leftpos}},
+                         {"leftpos": {"$lte": rightpos}},
+                         {"strand": {"$in" : strand}},
+                         {"data_set_id": {"$in" : data_set_ids}}
+                        ]}},
+                    {"$group": {
+                          "_id": {'leftpos': "$leftpos", 'strand': "$strand"},
+                          "avgval": {operator: "$value"}}},
+                    {"$sort": { 'leftpos': -1}}
+
+                    ]
+
+    return base.omics_database.command('aggregate', 'genome_data', pipeline=pipeline)
+
 
 
 

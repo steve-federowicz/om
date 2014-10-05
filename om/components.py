@@ -46,9 +46,10 @@ class Motif(GenomeRegion):
             (self.bound_component.name, self.leftpos, self.rightpos,\
                                  self.strand, self.pval)
 
-    def __init__(self, leftpos, rightpos, strand, pval, info=None):
-        super(Motif, self).__init__(leftpos, rightpos, strand)
+    def __init__(self, leftpos, rightpos, strand, genome_id, pval, bound_component_id, info=None):
+        super(Motif, self).__init__(leftpos, rightpos, strand, genome_id)
         self.pval = pval
+        self.bound_component_id = bound_component_id
         self.info = info
 
 

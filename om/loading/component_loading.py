@@ -381,8 +381,23 @@ def load_genomes(base, components):
 
 
 @timing
-def load_motifs(base, components):
-    motifs = open(settings.data_directory + '/annotation/ec_annotation_from_metacyc_2010July19_wpseudo.gff','r')
+def load_motifs(base, components, genome, bound_component=None, motif_gff_file=None):
+    session = base.Session()
+
+    motifs = open(motif_gff_file, 'r').readlines()
+    for motif in motifs:
+        if motif[0] == '#': continue
+        vals = motif.split('\t')
+        leftpos = vals[3]
+        rightpos = vals[4]
+        strand = vals[6]
+        pval = vals[8].split(';')[0]
+        sequence = vals[8].split(';')[1]
+
+        session.get_or_create(components.Motif, leftpos=leftpos, rightpos=rightpos, strand=strand,
+                              genome_id = genome.id, pval=pval, bound_component_id = bound_component.id)
+
+    session.close()
 
 
 @timing

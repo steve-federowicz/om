@@ -101,7 +101,13 @@ def load_settings_from_file(filepath="settings.ini", in_omlib=True):
         if primer3 is None:
             primer3 = "./primer3_core"
         config.set("EXECUTABLES", "primer3", primer3)
-
+    if not config.has_option("EXECUTABLES", "cufflinks"):
+        cufflinks = which("cufflinks")
+        if cufflinks is None:
+            cufflinks = "./cufflinks"
+        config.set("EXECUTABLES", "cufflinks", cufflinks)
+	
+	
     # write the options back to the file
     with open(filepath, "w") as outfile:
         config.write(outfile)
@@ -128,7 +134,6 @@ def load_settings_from_file(filepath="settings.ini", in_omlib=True):
     #set home directory
     self.home_directory = config.get("MISC", "home_directory")
     self.data_directory = config.get("MISC", "data_directory")
-    self.dropbox_directory = config.get("MISC", "dropbox_directory")
 
 load_settings_from_file()
 del SafeConfigParser, modules
