@@ -824,6 +824,9 @@ class DifferentialGeneExpressionData(Base):
 
         if self.electron_acceptor1 == self.electron_acceptor2: args['electron_acceptor'] = self.electron_acceptor1
         else: args['electron_acceptor'] = self.electron_acceptor1+'/'+self.electron_acceptor2
+        
+        if self.supplements1 == self.supplements2: args['supplements'] = self.supplements1
+        else: args['supplements'] = self.supplements1+'/'+self.supplements2
 
         return "Gene: (%s, %s), %s, %s, %s, %s, %s, %s, Fold Change: %5.2f, FDR: %5.2f" % \
 				    	  (self.locus_id, self.gene_name, self.expression_type, args['strain'], args['carbon_source'],
