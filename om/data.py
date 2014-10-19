@@ -402,7 +402,7 @@ class NormalizedExpression(Analysis):
         return "Expression Data (#%d):  %s  %s" % \
             (self.id, self.name, self.expression_type)
 
-#todo -- add expression_type column
+
 class DifferentialExpression(Analysis):
     __tablename__ = 'differential_expression'
 
@@ -746,8 +746,8 @@ class ChIPPeakGeneExpression(Base):
     __table__ = chip_peak_gene_expression
 
     def __repr__(self):
-        return "TF: %s, Gene: (%s), %5.2f, %5.2f %s-->%s Condition: %s, %s, %s Peak: %d-%d value:%5.2f" % \
-            (self.target, self.gene_name, self.value, self.pval, self.strain1, self.strain2,
+        return "TF: %s, Gene: (%s), %5.2f, %5.2f, %s, %s-->%s Condition: %s, %s, %s Peak: %d-%d value:%5.2f" % \
+            (self.target, self.gene_name, self.value, self.pval, self.expression_type, self.strain1, self.strain2,
              self.carbon_source, self.nitrogen_source, self.electron_acceptor, self.leftpos, self.rightpos, self.peak_value)
 
 InVivoEnvironment2 = aliased(InVivoEnvironment)
