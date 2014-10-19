@@ -929,7 +929,7 @@ def load_gff_chip_peaks(chip_peak_analyses, base, data, genome, group_name):
 
             position = (int(vals[3])+int(vals[4]))/2
 
-            peak_region = session.get_or_create(base.GenomeRegion, leftpos=vals[3], rightpos=vals[4], strand='+', genome_id=genome.id)
+            peak_region = session.get_or_create(base.GenomeRegion, leftpos=vals[3], rightpos=vals[4], strand=vals[6], genome_id=genome.id)
 
             peak_data = session.get_or_create(data.ChIPPeakData, data_set_id=chip_peak_analysis.id, genome_region_id=peak_region.id,\
                                                 value=vals[5], eventpos=position, pval=0.)

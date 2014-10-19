@@ -119,13 +119,15 @@ require(["widgets/js/widget", "d3"], function(WidgetManager, d3){
         })
         ;
 
+  console.log(minval);
+  console.log(maxval);
   var legend = svg.selectAll(".legend")
       .data(d3.range(Math.floor(minval), Math.ceil(maxval)))
       .enter().append("g")
       .attr("class", "legend");
 
-  var color_factor = Math.ceil(colors.length/(maxval-minval));
-  console.log(height+(cellSize*2));
+  var color_factor = Math.floor(colors.length/(maxval-minval));
+  console.log(color_factor);
   legend.append("rect")
     .attr("x", function(d, i) { return legendElementWidth * i; })
     .attr("y", height+(cellSize*2))
