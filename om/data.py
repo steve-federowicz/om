@@ -825,9 +825,9 @@ class DifferentialGeneExpressionData(Base):
         if self.electron_acceptor1 == self.electron_acceptor2: args['electron_acceptor'] = self.electron_acceptor1
         else: args['electron_acceptor'] = self.electron_acceptor1+'/'+self.electron_acceptor2
 
-        return "Gene: (%s, %s), %s, %s, %s, %s, %s, Fold Change: %5.2f, FDR: %5.2f" % \
+        return "Gene: (%s, %s), %s, %s, %s, %s, %s, %s, Fold Change: %5.2f, FDR: %5.2f" % \
 				    	  (self.locus_id, self.gene_name, self.expression_type, args['strain'], args['carbon_source'],
-					   args['nitrogen_source'], args['electron_acceptor'], self.value, self.pval)
+					   args['nitrogen_source'], args['electron_acceptor'], args['supplements'], self.value, self.pval)
 
 
 def load_genome_data(file_path, data_set_id, bulk_file_load=False, loading_cutoff=0):
