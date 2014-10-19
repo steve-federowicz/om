@@ -709,8 +709,7 @@ chip_peak_gene_expression = ome.query(ChIPPeakData.value.label('peak_value'),
                  diff_exp_chip_peak.c.nitrogen_source.label('nitrogen_source'),
                  diff_exp_chip_peak.c.electron_acceptor.label('electron_acceptor'),
                  TU.name.label('tu_name'),
-                 Gene.id.label('gene_id'),
-                 Gene.locus_id.label('locus_id'),
+                 GenomeRegion2.id.label('gene_id'),
                  GenomeRegion2.name.label('gene_name'),
                  DiffExpData.type.label('dataset_type'),
                  DiffExpData.genome_region_id.label('gene_genome_region_id'),
@@ -725,9 +724,8 @@ chip_peak_gene_expression = ome.query(ChIPPeakData.value.label('peak_value'),
                     join(DiffExpData, DiffExpData.genome_region_id == TUGenes.gene_id).\
                     join(diff_exp_chip_peak, and_(DiffExpData.data_set_id == diff_exp_chip_peak.c.diff_exp_id,
                                                   ChIPPeakData.data_set_id == diff_exp_chip_peak.c.chip_peak_id)).\
-                    join(Gene, Gene.id == TUGenes.gene_id).\
-                    join(GenomeRegion, GenomeRegion.id == ChIPPeakData.genome_region_id).\
                     join(GenomeRegion2, GenomeRegion2.id == TUGenes.gene_id).\
+                    join(GenomeRegion, GenomeRegion.id == ChIPPeakData.genome_region_id).\
                     join(ChIPPeakAnalysis, ChIPPeakAnalysis.id == ChIPPeakData.data_set_id).subquery()
 
 
