@@ -402,7 +402,7 @@ class NormalizedExpression(Analysis):
         return "Expression Data (#%d):  %s  %s" % \
             (self.id, self.name, self.expression_type)
 
-
+#todo -- add expression_type column
 class DifferentialExpression(Analysis):
     __tablename__ = 'differential_expression'
 
