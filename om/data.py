@@ -756,7 +756,7 @@ differential_gene_expression_data = ome.query(DiffExpData.value.label('value'),
                                            DiffExpData.pval.label('pval'),
                                            DiffExpData.data_set_id.label('diff_exp_id'),
                                            NormalizedExpression.id.label('expression_id'),
-                                           NormalizedExpression.expression_type.label('dataset_type'),
+                                           NormalizedExpression.expression_type.label('expression_type'),
                                            Gene.id.label('gene_id'),
                                            Gene.locus_id.label('locus_id'),
                                            Gene.name.label('gene_name'),
@@ -825,10 +825,9 @@ class DifferentialGeneExpressionData(Base):
         if self.electron_acceptor1 == self.electron_acceptor2: args['electron_acceptor'] = self.electron_acceptor1
         else: args['electron_acceptor'] = self.electron_acceptor1+'/'+self.electron_acceptor2
 
-        return "Gene: (%s, %s), %s, %s, %s, %s, Fold Change: %5.2f, FDR: %5.2f" % \
-				    	  (self.locus_id, self.gene_name, args['strain'], args['carbon_source'],
-					  								  args['nitrogen_source'], args['electron_acceptor'],
-					  								  self.value, self.pval)
+        return "Gene: (%s, %s), %s, %s, %s, %s, %s, Fold Change: %5.2f, FDR: %5.2f" % \
+				    	  (self.locus_id, self.gene_name, self.expression_type, args['strain'], args['carbon_source'],
+					   args['nitrogen_source'], args['electron_acceptor'], self.value, self.pval)
 
 
 def load_genome_data(file_path, data_set_id, bulk_file_load=False, loading_cutoff=0):
